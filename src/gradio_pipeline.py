@@ -23,6 +23,9 @@ from .utils.camera import get_rotation_matrix
 from .utils.video import get_fps, has_audio_stream, concat_frames, images2video, add_audio_to_video
 from .utils.helper import is_square_video, mkdir, dct2device, basename
 from .utils.retargeting_utils import calc_eye_close_ratio, calc_lip_close_ratio
+from .config.inference_config import InferenceConfig
+from .config.crop_config import CropConfig
+from .config.enhancement_config import EnhancementConfig
 
 
 def update_args(args, user_args):
@@ -596,11 +599,11 @@ class GradioPipeline(LivePortraitPipeline):
 class GradioPipelineAnimal(LivePortraitPipelineAnimal):
     """gradio for animal
     """
-    def __init__(self, inference_cfg, crop_cfg, args: ArgumentConfig):
-        inference_cfg.flag_crop_driving_video = True # ensure the face_analysis_wrapper is enabled
-        super().__init__(inference_cfg, crop_cfg)
-        # self.live_portrait_wrapper_animal = self.live_portrait_wrapper_animal
-        self.args = args
+
+    def __init__(self, inference_cfg: InferenceConfig, crop_cfg: CropConfig, enh_cfg: EnhancementConfig, args: ArgumentConfig):
+        # Pass enhancement config to parent
+        super().__init__(inference_cfg, crop_cfg, enh_cfg)
+        self.args = args # ArgumentConfig for command-line/script args
 
     @torch.no_grad()
     def execute_video(
@@ -620,6 +623,11 @@ class GradioPipelineAnimal(LivePortraitPipelineAnimal):
         vx_ratio_crop_driving_video=0.0,
         vy_ratio_crop_driving_video=-0.1,
         tab_selection=None,
+        enhance_outscale: int = 4,
+        # RealESRGAN params (add corresponding Gradio inputs)
+        upscaler_tile: int = 0,
+        upscaler_tile_pad: int = 10,
+        flag_enhance: bool = False,
     ):
         """ for video-driven potrait animation
         """
@@ -652,12 +660,19 @@ class GradioPipelineAnimal(LivePortraitPipelineAnimal):
                 'scale_crop_driving_video': scale_crop_driving_video,
                 'vx_ratio_crop_driving_video': vx_ratio_crop_driving_video,
                 'vy_ratio_crop_driving_video': vy_ratio_crop_driving_video,
+                'flag_enhance': flag_enhance,
+                'enhance_outscale': enhance_outscale,
+                'upscaler_tile': upscaler_tile,
+                'upscaler_tile_pad': upscaler_tile_pad,
             }
-            # update config from user input
+            # update ArgumentConfig from user input
             self.args = update_args(self.args, args_user)
+            # Update configs in underlying wrappers
+            # Assuming LivePortraitWrapperAnimal also needs updated inference_cfg
             self.live_portrait_wrapper_animal.update_config(self.args.__dict__)
             self.cropper.update_config(self.args.__dict__)
-            # video driven animation
+
+            # Execute now returns 5 values
             video_path, video_path_concat, video_gif_path = self.execute(self.args)
             gr.Info("Run successfully!", duration=2)
             return video_path, video_path_concat, video_gif_path

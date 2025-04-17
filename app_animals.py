@@ -14,6 +14,7 @@ from src.gradio_pipeline import GradioPipelineAnimal
 from src.config.crop_config import CropConfig
 from src.config.argument_config import ArgumentConfig
 from src.config.inference_config import InferenceConfig
+from src.config.enhancement_config import EnhancementConfig
 
 
 def partial_fields(target_class, kwargs):
@@ -42,11 +43,13 @@ if not fast_check_ffmpeg():
     )
 # specify configs for inference
 inference_cfg = partial_fields(InferenceConfig, args.__dict__)  # use attribute of args to initial InferenceConfig
-crop_cfg = partial_fields(CropConfig, args.__dict__)  # use attribute of args to initial CropConfig
+crop_cfg = partial_fields(CropConfig, args.__dict__)
+enh_cfg = partial_fields(EnhancementConfig, args.__dict__) # use attribute of args to initial CropConfig
 
 gradio_pipeline_animal: GradioPipelineAnimal = GradioPipelineAnimal(
     inference_cfg=inference_cfg,
     crop_cfg=crop_cfg,
+    enh_cfg=enh_cfg,
     args=args
 )
 
@@ -164,6 +167,7 @@ with gr.Blocks(theme=gr.themes.Soft(font=[gr.themes.GoogleFont("Plus Jakarta San
                 flag_stitching = gr.Checkbox(value=False, label="stitching (not recommended)")
                 flag_remap_input = gr.Checkbox(value=False, label="paste-back (not recommended)")
                 driving_multiplier = gr.Number(value=1.0, label="driving multiplier", minimum=0.0, maximum=2.0, step=0.02)
+                flag_enhance_input = gr.Checkbox(value=enh_cfg.flag_enhance, label="Enable Upscaling (Enhancement)")
 
     gr.Markdown(load_description("assets/gradio/gradio_description_animate_clear.md"))
     with gr.Row():
@@ -237,6 +241,7 @@ with gr.Blocks(theme=gr.themes.Soft(font=[gr.themes.GoogleFont("Plus Jakarta San
             vx_ratio_crop_driving_video,
             vy_ratio_crop_driving_video,
             tab_selection,
+            flag_enhance_input,
         ],
         outputs=[output_video_i2v, output_video_concat_i2v, output_video_i2v_gif],
         show_progress=True

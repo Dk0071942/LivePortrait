@@ -28,8 +28,12 @@ from .utils.crop import _transform_img, prepare_paste_back, paste_back
 from .utils.io import load_image_rgb, load_video, resize_to_limit, dump, load
 from .utils.helper import mkdir, basename, dct2device, is_video, is_template, remove_suffix, is_image, calc_motion_multiplier
 from .utils.rprint import rlog as log
+from .utils.image_upscale import ImageUpscale
 # from .utils.viz import viz_lmk
 from .live_portrait_wrapper import LivePortraitWrapperAnimal
+
+# Import the new config class
+from .config.enhancement_config import EnhancementConfig
 
 
 def make_abs_path(fn):
@@ -37,9 +41,13 @@ def make_abs_path(fn):
 
 class LivePortraitPipelineAnimal(object):
 
-    def __init__(self, inference_cfg: InferenceConfig, crop_cfg: CropConfig):
+    def __init__(self, inference_cfg: InferenceConfig, crop_cfg: CropConfig, enh_cfg: EnhancementConfig):
+        self.inference_cfg = inference_cfg # Store for convenience
+        self.enh_cfg = enh_cfg # Store enhancement config
         self.live_portrait_wrapper_animal: LivePortraitWrapperAnimal = LivePortraitWrapperAnimal(inference_cfg=inference_cfg)
         self.cropper: Cropper = Cropper(crop_cfg=crop_cfg, image_type='animal_face', flag_use_half_precision=inference_cfg.flag_use_half_precision)
+        # Initialize the upscaler with the EnhancementConfig
+        self.upscaler: ImageUpscale = ImageUpscale(enh_cfg=self.enh_cfg, half=inference_cfg.flag_use_half_precision)
 
     def make_motion_template(self, I_lst, **kwargs):
         n_frames = I_lst.shape[0]
@@ -233,5 +241,15 @@ class LivePortraitPipelineAnimal(object):
         wfp_gif = video2gif(wfp)
         log(f'Animated gif: {wfp_gif}')
 
+        # Use the flag from EnhancementConfig
+        if self.upscaler.upsampler is not None and self.enh_cfg.flag_enhance:
+            log("Upscaling final video(s)...")
+            # Upscale the main video
+            wfp_upscaled = self.upscaler.process_video(wfp)
+            if wfp_upscaled and osp.exists(wfp_upscaled):
+                log(f'Upscaled video saved to: {wfp_upscaled}')
+                # Optionally replace original with upscaled version
+                # os.replace(wfp_upscaled, wfp)
+            return wfp_upscaled, wfp_concat, wfp_gif
 
         return wfp, wfp_concat, wfp_gif
