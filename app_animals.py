@@ -83,6 +83,7 @@ output_image_paste_back = gr.Image(type="numpy")
 output_video_i2v = gr.Video(autoplay=False)
 output_video_concat_i2v = gr.Video(autoplay=False)
 output_video_i2v_gif = gr.Image(type="numpy")
+output_source_landmarks = gr.Image(type="numpy", label="Source Image with Landmarks")
 
 
 with gr.Blocks(theme=gr.themes.Soft(font=[gr.themes.GoogleFont("Plus Jakarta Sans")])) as demo:
@@ -93,6 +94,14 @@ with gr.Blocks(theme=gr.themes.Soft(font=[gr.themes.GoogleFont("Plus Jakarta San
         with gr.Column():
             with gr.Accordion(open=True, label="🐱 Source Animal Image"):
                 source_image_input = gr.Image(type="filepath")
+                landmark_check_button = gr.Button("🔍 Check Landmarks", variant="secondary", size="sm")
+                landmark_check_output = gr.Image(label="Detected Landmarks", type="numpy", show_label=False, interactive=False)
+                landmark_check_button.click(
+                    fn=gradio_pipeline_animal.visualize_landmarks,
+                    inputs=[source_image_input],
+                    outputs=[landmark_check_output],
+                    show_progress=True
+                )
                 gr.Examples(
                     examples=[
                         [osp.join(example_portrait_dir, "s25.jpg")],
@@ -182,8 +191,11 @@ with gr.Blocks(theme=gr.themes.Soft(font=[gr.themes.GoogleFont("Plus Jakarta San
         with gr.Column():
             with gr.Accordion(open=True, label="The animated video"):
                 output_video_concat_i2v.render()
+        with gr.Column():
+            with gr.Accordion(open=True, label="Source Image Landmarks"):
+                output_source_landmarks.render()
     with gr.Row():
-        process_button_reset = gr.ClearButton([source_image_input, driving_video_input, output_video_i2v, output_video_concat_i2v, output_video_i2v_gif], value="🧹 Clear")
+        process_button_reset = gr.ClearButton([source_image_input, driving_video_input, output_video_i2v, output_video_concat_i2v, output_video_i2v_gif, output_source_landmarks], value="🧹 Clear")
 
     with gr.Row():
         # Examples
@@ -202,7 +214,7 @@ with gr.Blocks(theme=gr.themes.Soft(font=[gr.themes.GoogleFont("Plus Jakarta San
                         flag_remap_input,
                         flag_crop_driving_video_input,
                     ],
-                    outputs=[output_image, output_image_paste_back, output_video_i2v_gif],
+                    outputs=[output_image, output_image_paste_back, output_video_i2v_gif, output_source_landmarks],
                     examples_per_page=len(data_examples_i2v_pickle),
                     cache_examples=False,
                 )
@@ -218,7 +230,7 @@ with gr.Blocks(theme=gr.themes.Soft(font=[gr.themes.GoogleFont("Plus Jakarta San
                         flag_remap_input,
                         flag_crop_driving_video_input,
                     ],
-                    outputs=[output_image, output_image_paste_back, output_video_i2v_gif],
+                    outputs=[output_image, output_image_paste_back, output_video_i2v_gif, output_source_landmarks],
                     examples_per_page=len(data_examples_i2v),
                     cache_examples=False,
                 )
@@ -243,12 +255,19 @@ with gr.Blocks(theme=gr.themes.Soft(font=[gr.themes.GoogleFont("Plus Jakarta San
             tab_selection,
             flag_enhance_input,
         ],
-        outputs=[output_video_i2v, output_video_concat_i2v, output_video_i2v_gif],
+        outputs=[output_video_i2v, output_video_concat_i2v, output_video_i2v_gif, output_source_landmarks],
         show_progress=True
     )
 
+# --- Combine Demos --- (Optional: Combine or launch separately)
+# Option 1: Launch separately (simpler)
 demo.launch(
     server_port=args.server_port,
     share=args.share,
     server_name=args.server_name
 )
+
+# Option 2: Combine using gr.TabbedInterface (More integrated, but requires restructuring)
+# If you prefer tabs, the structure of app_animals.py would need significant changes
+# to embed both 'demo' and 'demo_landmark_check' Blocks within a TabbedInterface.
+# For now, launching separately is the most straightforward way.

@@ -148,6 +148,7 @@ class Cropper(object):
             # 68x2 or 9x2
             ret_dct["lmk_crop"] = lmk
 
+        ret_dct['lmk_original'] = lmk
         return ret_dct
 
     def calc_lmk_from_cropped_image(self, img_rgb_, **kwargs):

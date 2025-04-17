@@ -29,6 +29,7 @@ from .utils.io import load_image_rgb, load_video, resize_to_limit, dump, load
 from .utils.helper import mkdir, basename, dct2device, is_video, is_template, remove_suffix, is_image, calc_motion_multiplier
 from .utils.rprint import rlog as log
 from .utils.image_upscale import ImageUpscale
+from .utils.viz import draw_landmarks
 # from .utils.viz import viz_lmk
 from .live_portrait_wrapper import LivePortraitWrapperAnimal
 
@@ -145,13 +146,24 @@ class LivePortraitPipelineAnimal(object):
             log("Prepared pasteback mask done.")
 
         ######## process source info ########
+        img_with_landmarks = None # Initialize
         if inf_cfg.flag_do_crop:
             crop_info = self.cropper.crop_source_image(img_rgb, crop_cfg)
             if crop_info is None:
                 raise Exception("No animal face detected in the source image!")
             img_crop_256x256 = crop_info['img_crop_256x256']
+            # Draw landmarks on the original image if available
+            if 'lmk_original' in crop_info:
+                img_with_landmarks = draw_landmarks(img_rgb, crop_info['lmk_original'])
         else:
             img_crop_256x256 = cv2.resize(img_rgb, (256, 256))  # force to resize to 256x256
+            # Try to get landmarks even if not cropping (might be needed for some cases)
+            # This part might need adjustment depending on exact flow if no cropping
+            # For now, assume landmarks are not available/needed if not cropping
+            # Or, could explicitly run landmark detection here:
+            # lmk_original = self.cropper.get_landmarks_directly(img_rgb)
+            # img_with_landmarks = draw_landmarks(img_rgb, lmk_original)
+
         I_s = self.live_portrait_wrapper_animal.prepare_source(img_crop_256x256)
         x_s_info = self.live_portrait_wrapper_animal.get_kp_info(I_s)
         x_c_s = x_s_info['kp']
@@ -249,7 +261,6 @@ class LivePortraitPipelineAnimal(object):
             if wfp_upscaled and osp.exists(wfp_upscaled):
                 log(f'Upscaled video saved to: {wfp_upscaled}')
                 # Optionally replace original with upscaled version
-                # os.replace(wfp_upscaled, wfp)
-            return wfp_upscaled, wfp_concat, wfp_gif
+                os.replace(wfp_upscaled, wfp)
 
-        return wfp, wfp_concat, wfp_gif
+        return wfp, wfp_concat, wfp_gif, img_with_landmarks

@@ -15,7 +15,7 @@ import torch
 from .config.argument_config import ArgumentConfig
 from .live_portrait_pipeline import LivePortraitPipeline
 from .live_portrait_pipeline_animal import LivePortraitPipelineAnimal
-from .utils.io import load_img_online, load_video, resize_to_limit
+from .utils.io import load_img_online, load_video, resize_to_limit, load_image_rgb
 from .utils.filter import smooth
 from .utils.rprint import rlog as log
 from .utils.crop import prepare_paste_back, paste_back
@@ -26,6 +26,7 @@ from .utils.retargeting_utils import calc_eye_close_ratio, calc_lip_close_ratio
 from .config.inference_config import InferenceConfig
 from .config.crop_config import CropConfig
 from .config.enhancement_config import EnhancementConfig
+from .utils.viz import draw_landmarks
 
 
 def update_args(args, user_args):
@@ -672,9 +673,41 @@ class GradioPipelineAnimal(LivePortraitPipelineAnimal):
             self.live_portrait_wrapper_animal.update_config(self.args.__dict__)
             self.cropper.update_config(self.args.__dict__)
 
-            # Execute now returns 5 values
-            video_path, video_path_concat, video_gif_path = self.execute(self.args)
+            # Execute now returns 4 values
+            video_path, video_path_concat, video_gif_path, source_img_with_landmarks = self.execute(self.args)
             gr.Info("Run successfully!", duration=2)
-            return video_path, video_path_concat, video_gif_path
+            # Return all results including the landmark image
+            return video_path, video_path_concat, video_gif_path, source_img_with_landmarks
         else:
             raise gr.Error("Please upload the source animal image, and driving video 🤗🤗🤗", duration=5)
+
+    @torch.no_grad()
+    def visualize_landmarks(self, input_image_path):
+        """Detects and visualizes landmarks on a given input image."""
+        if input_image_path is None:
+            raise gr.Error("Please upload an image first.")
+
+        try:
+            log(f"Loading image for landmark visualization: {input_image_path}")
+            img_rgb = load_image_rgb(input_image_path)
+            # Use a copy of the crop_cfg to avoid modifying the main one if needed
+            # Or just use the existing self.cropper.crop_cfg if defaults are ok
+            crop_cfg_copy = self.cropper.crop_cfg # Or create a new instance/copy if needed
+            crop_info = self.cropper.crop_source_image(img_rgb, crop_cfg_copy)
+
+            if crop_info is None or 'lmk_original' not in crop_info:
+                log("Landmark detection failed or no landmarks found.")
+                # Return original image with a message? Or raise error?
+                # For now, return the original image as is.
+                gr.Info("Could not detect landmarks on the image.", duration=3)
+                return img_rgb
+
+            lmk_original = crop_info['lmk_original']
+            img_with_landmarks = draw_landmarks(img_rgb, lmk_original)
+            log("Landmarks detected and visualized successfully.")
+            gr.Info("Landmarks visualized successfully!", duration=2)
+            return img_with_landmarks
+
+        except Exception as e:
+            log(f"Error during landmark visualization: {e}", style="bold red")
+            raise gr.Error(f"Failed to visualize landmarks: {e}")
