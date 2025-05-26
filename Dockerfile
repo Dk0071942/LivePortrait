@@ -31,7 +31,7 @@ ENV LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH
 
 # Install specific PyTorch, torchvision, and torchaudio versions for CUDA 12.1
 # This is done *after* CUDA ENV VARS are set.
-RUN pip3 install --no-cache-dir torch==2.3.0 torchvision==0.18.0 torchaudio==2.3.0 --index-url https://download.pytorch.org/whl/cu121
+RUN pip3 install --no-cache-dir torch==2.7.0 torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
 
 # Install Python dependencies from requirements.txt
 # Using --no-cache-dir to reduce image size
