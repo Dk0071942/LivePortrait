@@ -49,6 +49,32 @@ COPY . .
 RUN mkdir -p ./pretrained_weights && \
     huggingface-cli download KwaiVGI/LivePortrait --local-dir ./pretrained_weights --exclude "*.git*" "README.md" "docs" --local-dir-use-symlinks False
 
+# After PyTorch installation and before X-Pose build
+RUN echo "Running CUDA and PyTorch diagnostics..." && \
+    nvcc --version && \
+    python3 -c "
+import torch
+print(f'>>>> PyTorch version: {torch.__version__}')
+_is_cuda_available = torch.cuda.is_available()
+print(f'>>>> CUDA available for PyTorch: {_is_cuda_available}')
+if _is_cuda_available:
+    print(f'>>>> PyTorch CUDA version: {torch.version.cuda}')
+    _device_count = torch.cuda.device_count()
+    print(f'>>>> CUDA devices count: {_device_count}')
+    if _device_count > 0:
+        print(f'>>>> Current CUDA device: {torch.cuda.current_device()}')
+        print(f'>>>> Device name: {torch.cuda.get_device_name(0)}')
+    else:
+        print('>>>> No CUDA devices found by PyTorch, although CUDA is reported as available.')
+    print(f'>>>> torch.utils.cpp_extension.CUDA_HOME from PyTorch: {torch.utils.cpp_extension.CUDA_HOME}')
+else:
+    print('>>>> CUDA *NOT* available to PyTorch.')
+    # Attempt to print CUDA version string from PyTorch even if not available
+    print(f'>>>> PyTorch CUDA version string (might be None or show compiled version): {torch.version.cuda}')
+    print(f'>>>> torch.utils.cpp_extension.CUDA_HOME from PyTorch (CUDA not available): {torch.utils.cpp_extension.CUDA_HOME}')
+print('>>>> End of diagnostics <<<<')
+"
+
 # Build and install X-Pose dependency
 RUN cd src/utils/dependencies/XPose/models/UniPose/ops && \
     python3 setup.py build install && \
