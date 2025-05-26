@@ -30,12 +30,45 @@ ENV LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH
 # Install specific PyTorch, torchvision, and torchaudio versions for CUDA 12.1
 RUN pip3 install --no-cache-dir torch==2.3.0 torchvision==0.18.0 torchaudio==2.3.0 --index-url https://download.pytorch.org/whl/cu121
 
-# --- FIX STARTS HERE ---
+# --- Python Diagnostic Script STARTS HERE ---
+# Add this section to check PyTorch's CUDA status
+RUN echo "Running CUDA and PyTorch diagnostics..." && \\
+    nvcc --version && \\
+    python3 <<EOF_PYTHON_SCRIPT
+import torch
+print(f'>>>> PyTorch version: {torch.__version__}')
+_is_cuda_available = torch.cuda.is_available()
+print(f'>>>> CUDA available for PyTorch: {_is_cuda_available}')
+if _is_cuda_available:
+    print(f'>>>> PyTorch CUDA version: {torch.version.cuda}')
+    _device_count = torch.cuda.device_count()
+    print(f'>>>> CUDA devices count: {_device_count}')
+    if _device_count > 0:
+        print(f'>>>> Current CUDA device: {torch.cuda.current_device()}')
+        print(f'>>>> Device name: {torch.cuda.get_device_name(0)}')
+    else:
+        print('>>>> No CUDA devices found by PyTorch (though CUDA is reported as available).')
+    print(f'>>>> torch.utils.cpp_extension.CUDA_HOME from PyTorch: {torch.utils.cpp_extension.CUDA_HOME}')
+else:
+    print('>>>> CUDA *NOT* available to PyTorch.')
+    # Attempt to print CUDA version string from PyTorch even if not available
+    if hasattr(torch.version, 'cuda') and torch.version.cuda is not None:
+        print(f'>>>> PyTorch compiled with CUDA version: {torch.version.cuda}')
+    else:
+        print('>>>> PyTorch CUDA version attribute not found or is None.')
+    # Attempt to print CUDA_HOME from cpp_extension
+    if hasattr(torch.utils.cpp_extension, 'CUDA_HOME') and torch.utils.cpp_extension.CUDA_HOME is not None:
+        print(f'>>>> torch.utils.cpp_extension.CUDA_HOME: {torch.utils.cpp_extension.CUDA_HOME}')
+    else:
+        print('>>>> torch.utils.cpp_extension.CUDA_HOME not found or is None.')
+print('>>>> End of diagnostics <<<<')
+EOF_PYTHON_SCRIPT
+# --- Python Diagnostic Script ENDS HERE ---
+
 # Copy the requirements files BEFORE trying to install them
 COPY requirements.txt .
 # If you also have requirements_base.txt and it's needed, copy it too.
 COPY requirements_base.txt .
-# --- FIX ENDS HERE ---
 
 # Install Python dependencies from requirements.txt
 # It's good practice to keep --no-cache-dir to reduce image size
