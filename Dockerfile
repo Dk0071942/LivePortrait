@@ -5,11 +5,6 @@ FROM nvidia/cuda:12.1.0-cudnn8-devel-ubuntu22.04
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Install system dependencies
-# - git: for version control (useful if cloning repos during build)
-# - ffmpeg: for video processing
-# - libgl1-mesa-glx: dependency for OpenCV and other graphics libraries
-# - python3.10, python3-pip, python3.10-dev: Python runtime and development tools
-# - build-essential: for compiling C/C++ code (e.g., X-Pose)
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     git \
@@ -29,13 +24,21 @@ ENV CUDA_HOME=/usr/local/cuda
 ENV PATH=/usr/local/cuda/bin:$PATH
 ENV LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH
 
-# Install specific PyTorch, torchvision, and torchaudio versions for CUDA 12.1
-# This is done *after* CUDA ENV VARS are set.
+# Install specific PyTorch, torchvision, and torchaudio versions
+# Note: This line was changed in your latest logs to torch 2.7.0 / cu128.
+# Ensure this is the version you intend to use.
 RUN pip3 install --no-cache-dir torch==2.7.0 torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
 
+# --- FIX STARTS HERE ---
+# Copy the requirements files BEFORE trying to install them
+COPY requirements.txt .
+# If you also have requirements_base.txt and it's needed, copy it too.
+# COPY requirements_base.txt .
+# --- FIX ENDS HERE ---
+
 # Install Python dependencies from requirements.txt
-# Using --no-cache-dir to reduce image size
-RUN pip3 install -r requirements.txt
+# It's good practice to keep --no-cache-dir to reduce image size
+RUN pip3 install --no-cache-dir -r requirements.txt
 
 # Copy the rest of the application's source code
 COPY . .
@@ -46,8 +49,6 @@ RUN mkdir -p ./pretrained_weights && \
     huggingface-cli download KwaiVGI/LivePortrait --local-dir ./pretrained_weights --exclude "*.git*" "README.md" "docs" --local-dir-use-symlinks False
 
 # Build and install X-Pose dependency
-# This is required for animals mode and potentially other functionalities
-# CUDA ENV VARS should be picked up by torch.cuda.is_available() now.
 RUN cd src/utils/dependencies/XPose/models/UniPose/ops && \
     python3 setup.py build install && \
     cd /app
@@ -55,8 +56,8 @@ RUN cd src/utils/dependencies/XPose/models/UniPose/ops && \
 # Make port 7860 available (Gradio default port)
 EXPOSE 7860
 
-# Set environment variable for Gradio server (already set by Gradio itself, but good practice)
+# Set environment variable for Gradio server
 ENV GRADIO_SERVER_NAME="0.0.0.0"
 
-# Define the command to run the application (animals mode Gradio interface)
+# Define the command to run the application
 CMD ["python3", "app_animals.py"]
