@@ -44,19 +44,21 @@ COPY . .
 RUN mkdir -p ./pretrained_weights && \
     huggingface-cli download KwaiVGI/LivePortrait --local-dir ./pretrained_weights --exclude "*.git*" "README.md" "docs" --local-dir-use-symlinks False
 
+# Set CUDA environment variables for X-Pose build and runtime
+ENV CUDA_HOME=/usr/local/cuda
+ENV PATH=/usr/local/cuda/bin:$PATH
+ENV LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH
+
 # Build and install X-Pose dependency
 # This is required for animals mode and potentially other functionalities
-RUN export CUDA_HOME=/usr/local/cuda && \
-    export PATH=/usr/local/cuda/bin:$PATH && \
-    export LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH && \
-    cd src/utils/dependencies/XPose/models/UniPose/ops && \
+RUN cd src/utils/dependencies/XPose/models/UniPose/ops && \
     python3 setup.py build install && \
     cd /app
 
 # Make port 7860 available (Gradio default port)
 EXPOSE 7860
 
-# Set environment variable for Gradio server
+# Set environment variable for Gradio server (already set by Gradio itself, but good practice)
 ENV GRADIO_SERVER_NAME="0.0.0.0"
 
 # Define the command to run the application (animals mode Gradio interface)
