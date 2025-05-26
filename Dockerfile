@@ -24,8 +24,13 @@ RUN apt-get update && \
 # Set the working directory in the container
 WORKDIR /app
 
+# Set CUDA environment variables first, to be available for PyTorch installation and X-Pose build
+ENV CUDA_HOME=/usr/local/cuda
+ENV PATH=/usr/local/cuda/bin:$PATH
+ENV LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH
+
 # Install specific PyTorch, torchvision, and torchaudio versions for CUDA 12.1
-# As per readme.md: https://download.pytorch.org/whl/cu121
+# This is done *after* CUDA ENV VARS are set.
 RUN pip3 install --no-cache-dir torch==2.3.0 torchvision==0.18.0 torchaudio==2.3.0 --index-url https://download.pytorch.org/whl/cu121
 
 # Copy the requirements files
@@ -44,13 +49,9 @@ COPY . .
 RUN mkdir -p ./pretrained_weights && \
     huggingface-cli download KwaiVGI/LivePortrait --local-dir ./pretrained_weights --exclude "*.git*" "README.md" "docs" --local-dir-use-symlinks False
 
-# Set CUDA environment variables for X-Pose build and runtime
-ENV CUDA_HOME=/usr/local/cuda
-ENV PATH=/usr/local/cuda/bin:$PATH
-ENV LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH
-
 # Build and install X-Pose dependency
 # This is required for animals mode and potentially other functionalities
+# CUDA ENV VARS should be picked up by torch.cuda.is_available() now.
 RUN cd src/utils/dependencies/XPose/models/UniPose/ops && \
     python3 setup.py build install && \
     cd /app
