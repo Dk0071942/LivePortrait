@@ -55,7 +55,7 @@ else:
     else:
         print('>>>> PyTorch CUDA version attribute not found or is None.')
     # Attempt to print CUDA_HOME from cpp_extension
-    if hasattr(torch.utils.cpp_extension, 'CUDA_HOME') and torch.utils.cpp_extension.CUDA_HOME is not None:
+    if hasattr(torch.utils, 'cpp_extension') and torch.utils.cpp_extension is not None and hasattr(torch.utils.cpp_extension, 'CUDA_HOME') and torch.utils.cpp_extension.CUDA_HOME is not None:
         print(f'>>>> torch.utils.cpp_extension.CUDA_HOME: {torch.utils.cpp_extension.CUDA_HOME}')
     else:
         print('>>>> torch.utils.cpp_extension.CUDA_HOME not found or is None.')
