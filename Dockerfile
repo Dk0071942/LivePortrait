@@ -33,7 +33,7 @@ RUN pip3 install --no-cache-dir torch==2.7.0 torchvision torchaudio --index-url 
 # Copy the requirements files BEFORE trying to install them
 COPY requirements.txt .
 # If you also have requirements_base.txt and it's needed, copy it too.
-# COPY requirements_base.txt .
+COPY requirements_base.txt .
 # --- FIX ENDS HERE ---
 
 # Install Python dependencies from requirements.txt
