@@ -33,22 +33,6 @@ ENV LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH
 # This is done *after* CUDA ENV VARS are set.
 RUN pip3 install --no-cache-dir torch==2.3.0 torchvision==0.18.0 torchaudio==2.3.0 --index-url https://download.pytorch.org/whl/cu121
 
-# Diagnostic step: Check CUDA and PyTorch setup
-RUN echo "Running CUDA and PyTorch diagnostics..." && \
-    nvcc --version && \
-    python3 -c "import torch; \
-print(f'PyTorch version: {torch.__version__}'); \
-_is_cuda_available = torch.cuda.is_available(); \
-print(f'CUDA available for PyTorch: {_is_cuda_available}'); \
-print(f'PyTorch CUDA version: {torch.version.cuda}'); \
-print(f'CUDA devices count: {torch.cuda.device_count()}'); \
-if _is_cuda_available: print(f'Current CUDA device: {torch.cuda.current_device()}'); \
-if _is_cuda_available: print(f'Device name: {torch.cuda.get_device_name(0)}'); \
-if _is_cuda_available: print(f'torch.utils.cpp_extension.CUDA_HOME: {torch.utils.cpp_extension.CUDA_HOME}');"
-# Copy the requirements files
-COPY requirements.txt .
-COPY requirements_base.txt .
-
 # Install Python dependencies from requirements.txt
 # Using --no-cache-dir to reduce image size
 RUN pip3 install --no-cache-dir -r requirements.txt
