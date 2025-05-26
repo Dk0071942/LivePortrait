@@ -28,8 +28,9 @@ WORKDIR /app
 # As per readme.md: https://download.pytorch.org/whl/cu121
 RUN pip3 install --no-cache-dir torch==2.3.0 torchvision==0.18.0 torchaudio==2.3.0 --index-url https://download.pytorch.org/whl/cu121
 
-# Copy the requirements file
+# Copy the requirements files
 COPY requirements.txt .
+COPY requirements_base.txt .
 
 # Install Python dependencies from requirements.txt
 # Using --no-cache-dir to reduce image size
@@ -55,5 +56,5 @@ EXPOSE 7860
 # Set environment variable for Gradio server
 ENV GRADIO_SERVER_NAME="0.0.0.0"
 
-# Define the command to run the application (humans mode Gradio interface)
-CMD ["python3", "app.py"]
+# Define the command to run the application (animals mode Gradio interface)
+CMD ["python3", "app_animals.py"]
