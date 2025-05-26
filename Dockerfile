@@ -46,7 +46,10 @@ RUN mkdir -p ./pretrained_weights && \
 
 # Build and install X-Pose dependency
 # This is required for animals mode and potentially other functionalities
-RUN cd src/utils/dependencies/XPose/models/UniPose/ops && \
+RUN export CUDA_HOME=/usr/local/cuda && \
+    export PATH=/usr/local/cuda/bin:$PATH && \
+    export LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH && \
+    cd src/utils/dependencies/XPose/models/UniPose/ops && \
     python3 setup.py build install && \
     cd /app
 
