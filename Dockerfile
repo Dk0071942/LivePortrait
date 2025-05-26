@@ -35,7 +35,7 @@ RUN pip3 install --no-cache-dir torch==2.7.0 torchvision torchaudio --index-url 
 
 # Install Python dependencies from requirements.txt
 # Using --no-cache-dir to reduce image size
-RUN pip3 install --no-cache-dir -r requirements.txt
+RUN pip3 install -r requirements.txt
 
 # Copy the rest of the application's source code
 COPY . .
