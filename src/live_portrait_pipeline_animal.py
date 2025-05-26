@@ -43,6 +43,7 @@ def make_abs_path(fn):
 class LivePortraitPipelineAnimal(object):
 
     def __init__(self, inference_cfg: InferenceConfig, crop_cfg: CropConfig, enh_cfg: EnhancementConfig):
+        print(f"[DEBUG live_portrait_pipeline_animal.py __init__] Initializing with enh_cfg.flag_enhance: {enh_cfg.flag_enhance}")
         self.inference_cfg = inference_cfg # Store for convenience
         self.enh_cfg = enh_cfg # Store enhancement config
         self.live_portrait_wrapper_animal: LivePortraitWrapperAnimal = LivePortraitWrapperAnimal(inference_cfg=inference_cfg)
@@ -76,6 +77,10 @@ class LivePortraitPipelineAnimal(object):
         return template_dct
 
     def execute(self, args: ArgumentConfig):
+        print(f"[DEBUG live_portrait_pipeline_animal.py execute] Start of execute method.")
+        print(f"[DEBUG live_portrait_pipeline_animal.py execute] self.enh_cfg.flag_enhance (stored in pipeline): {self.enh_cfg.flag_enhance}")
+        print(f"[DEBUG live_portrait_pipeline_animal.py execute] self.upscaler.enh_cfg.flag_enhance (in upscaler): {self.upscaler.enh_cfg.flag_enhance}")
+
         # for convenience
         inf_cfg = self.live_portrait_wrapper_animal.inference_cfg
         device = self.live_portrait_wrapper_animal.device
@@ -253,6 +258,7 @@ class LivePortraitPipelineAnimal(object):
         wfp_gif = video2gif(wfp)
         log(f'Animated gif: {wfp_gif}')
 
+        print(f"[DEBUG live_portrait_pipeline_animal.py execute] Before actual upscaling block: self.enh_cfg.flag_enhance is: {self.enh_cfg.flag_enhance}")
         # Use the flag from EnhancementConfig
         if self.upscaler.upsampler is not None and self.enh_cfg.flag_enhance:
             log("Upscaling final video(s)...")

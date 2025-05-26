@@ -58,7 +58,68 @@ if args.gradio_temp_dir not in (None, ''):
     os.makedirs(args.gradio_temp_dir, exist_ok=True)
 
 def gpu_wrapped_execute_video(*args, **kwargs):
-    return gradio_pipeline_animal.execute_video(*args, **kwargs)
+    # The main "Animate" button provides 16 positional arguments.
+    # The 16th argument (index 15) is the value from flag_enhance_input.
+    num_inputs_for_main_button = 16
+    # idx_flag_enhance_input_value = 15 # We will now use named args
+
+    if len(args) == num_inputs_for_main_button:
+        # Explicitly map args to named variables for clarity and debugging
+        ui_source_image_input             = args[0]
+        ui_driving_video_input            = args[1]
+        ui_driving_video_pickle_input     = args[2]
+        ui_flag_do_crop_input             = args[3]
+        ui_flag_remap_input               = args[4]
+        ui_driving_multiplier             = args[5]
+        ui_flag_stitching                 = args[6]
+        ui_flag_crop_driving_video_input  = args[7]
+        ui_scale                          = args[8]
+        ui_vx_ratio                       = args[9]
+        ui_vy_ratio                       = args[10]
+        ui_scale_crop_driving_video       = args[11]
+        ui_vx_ratio_crop_driving_video    = args[12]
+        ui_vy_ratio_crop_driving_video    = args[13]
+        ui_tab_selection                  = args[14] # Crucial for driving input type
+        ui_flag_enhance_input             = args[15]
+
+        print(f"[DEBUG app_animals.py gpu_wrapped_execute_video] ui_tab_selection from args[14]: '{ui_tab_selection}'")
+        print(f"[DEBUG app_animals.py gpu_wrapped_execute_video] ui_flag_enhance_input from args[15]: {ui_flag_enhance_input}")
+
+        original_pipeline_enh_cfg_flag_enhance = gradio_pipeline_animal.enh_cfg.flag_enhance
+
+        try:
+            gradio_pipeline_animal.enh_cfg.flag_enhance = ui_flag_enhance_input
+
+            print(f"[DEBUG app_animals.py] Before execute_video: UI flag_enhance_input: {ui_flag_enhance_input}")
+            print(f"[DEBUG app_animals.py] Before execute_video: pipeline.enh_cfg.flag_enhance: {gradio_pipeline_animal.enh_cfg.flag_enhance}")
+
+            result = gradio_pipeline_animal.execute_video(
+                input_source_image_path=ui_source_image_input,
+                input_driving_video_path=ui_driving_video_input,
+                input_driving_video_pickle_path=ui_driving_video_pickle_input,
+                flag_do_crop_input=ui_flag_do_crop_input,
+                flag_remap_input=ui_flag_remap_input,
+                driving_multiplier=ui_driving_multiplier,
+                flag_stitching=ui_flag_stitching,
+                flag_crop_driving_video_input=ui_flag_crop_driving_video_input,
+                scale=ui_scale,
+                vx_ratio=ui_vx_ratio,
+                vy_ratio=ui_vy_ratio,
+                scale_crop_driving_video=ui_scale_crop_driving_video,
+                vx_ratio_crop_driving_video=ui_vx_ratio_crop_driving_video,
+                vy_ratio_crop_driving_video=ui_vy_ratio_crop_driving_video,
+                tab_selection=ui_tab_selection, # Pass it explicitly
+                flag_enhance=ui_flag_enhance_input
+            )
+        finally:
+            gradio_pipeline_animal.enh_cfg.flag_enhance = original_pipeline_enh_cfg_flag_enhance
+        return result
+    else:
+        # This branch handles calls with a different number of arguments (e.g., from examples).
+        # For these calls, the enhancement behavior will depend on the pipeline's
+        # default handling (likely using the initial CLI-derived self.enh_cfg.flag_enhance
+        # or self.args.flag_enhance).
+        return gradio_pipeline_animal.execute_video(*args, **kwargs)
 
 
 # assets
@@ -130,7 +191,7 @@ with gr.Blocks(theme=gr.themes.Soft(font=[gr.themes.GoogleFont("Plus Jakarta San
             with gr.Tabs():
                 with gr.TabItem("📁 Driving Pickle") as tab_pickle:
                     with gr.Accordion(open=True, label="Driving Pickle"):
-                        driving_video_pickle_input = gr.File()
+                        driving_video_pickle_input = gr.File(type="filepath")
                         gr.Examples(
                             examples=[
                                 [osp.join(example_video_dir, "wink.pkl")],
@@ -160,9 +221,22 @@ with gr.Blocks(theme=gr.themes.Soft(font=[gr.themes.GoogleFont("Plus Jakarta San
                             cache_examples=False,
                         )
 
-                    tab_selection = gr.Textbox(visible=False)
-                    tab_pickle.select(lambda: "Pickle", None, tab_selection)
-                    tab_video.select(lambda: "Video", None, tab_selection)
+                    # tab_selection = gr.Textbox(visible=False) # Old way
+                    # tab_pickle.select(lambda: "Pickle", None, tab_selection)
+                    # tab_video.select(lambda: "Video", None, tab_selection)
+
+                    # New way using gr.State
+                    # Default to 'Pickle' as it's the first tab defined.
+                    tab_selection_state = gr.State(value="Pickle")
+
+                    def select_pickle_tab():
+                        return "Pickle"
+                    def select_video_tab():
+                        return "Video"
+
+                    tab_pickle.select(fn=select_pickle_tab, inputs=None, outputs=[tab_selection_state])
+                    tab_video.select(fn=select_video_tab, inputs=None, outputs=[tab_selection_state])
+
             with gr.Accordion(open=True, label="Cropping Options for Driving Video"):
                 with gr.Row():
                     flag_crop_driving_video_input = gr.Checkbox(value=False, label="do crop (driving)")
@@ -252,7 +326,7 @@ with gr.Blocks(theme=gr.themes.Soft(font=[gr.themes.GoogleFont("Plus Jakarta San
             scale_crop_driving_video,
             vx_ratio_crop_driving_video,
             vy_ratio_crop_driving_video,
-            tab_selection,
+            tab_selection_state,
             flag_enhance_input,
         ],
         outputs=[output_video_i2v, output_video_concat_i2v, output_video_i2v_gif, output_source_landmarks],

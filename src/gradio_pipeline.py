@@ -624,31 +624,41 @@ class GradioPipelineAnimal(LivePortraitPipelineAnimal):
         vx_ratio_crop_driving_video=0.0,
         vy_ratio_crop_driving_video=-0.1,
         tab_selection=None,
-        enhance_outscale: int = 4,
+        # enhance_outscale: int = 4, # This seems to be a parameter for GradioPipeline (human) not animal
         # RealESRGAN params (add corresponding Gradio inputs)
-        upscaler_tile: int = 0,
-        upscaler_tile_pad: int = 10,
+        # upscaler_tile: int = 0, # This seems to be a parameter for GradioPipeline (human) not animal
+        # upscaler_tile_pad: int = 10, # This seems to be a parameter for GradioPipeline (human) not animal
         flag_enhance: bool = False,
     ):
-        """ for video-driven potrait animation
+        """ for video-driven portrait animation for animal
         """
-        input_source_path = input_source_image_path
+        # Update the enhancement config with the value received from the UI
+        self.enh_cfg.flag_enhance = flag_enhance
+        print(f"[DEBUG gradio_pipeline.py GradioPipelineAnimal.execute_video] self.enh_cfg.flag_enhance set to: {self.enh_cfg.flag_enhance} (from flag_enhance arg: {flag_enhance})")
 
-        if tab_selection == 'Video':
-            input_driving_path = input_driving_video_path
-        elif tab_selection == 'Pickle':
-            input_driving_path = input_driving_video_pickle_path
-        else:
-            input_driving_path = input_driving_video_pickle_path
+        print(f"[DEBUG gradio_pipeline.py GradioPipelineAnimal.execute_video] Values before assigning input_driving_path:")
+        print(f"  tab_selection: {tab_selection}")
+        print(f"  input_driving_video_pickle_path: {input_driving_video_pickle_path}")
+        print(f"  input_driving_video_path: {input_driving_video_path}")
 
-        if input_source_path is not None and input_driving_path is not None:
+        if tab_selection == 'Pickle':
+            input_driving_path = input_driving_video_pickle_path
+        else: # This implies tab_selection == 'Video'
+            input_driving_path = input_driving_video_path # Corrected this line
+
+        print(f"[DEBUG gradio_pipeline.py GradioPipelineAnimal.execute_video] Values before conditional check:")
+        print(f"  input_source_image_path: {input_source_image_path}")
+        print(f"  input_driving_path (after assignment): {input_driving_path}")
+
+        # Corrected: Use input_source_image_path directly as that's the argument received.
+        if input_source_image_path is not None and input_driving_path is not None:
             if osp.exists(input_driving_path) and tab_selection == 'Video' and is_square_video(input_driving_path) is False:
                 flag_crop_driving_video_input = True
                 log("The driving video is not square, it will be cropped to square automatically.")
                 gr.Info("The driving video is not square, it will be cropped to square automatically.", duration=2)
 
             args_user = {
-                'source': input_source_path,
+                'source': input_source_image_path, # Corrected: Use input_source_image_path
                 'driving': input_driving_path,
                 'flag_do_crop': flag_do_crop_input,
                 'flag_pasteback': flag_remap_input,
@@ -662,9 +672,6 @@ class GradioPipelineAnimal(LivePortraitPipelineAnimal):
                 'vx_ratio_crop_driving_video': vx_ratio_crop_driving_video,
                 'vy_ratio_crop_driving_video': vy_ratio_crop_driving_video,
                 'flag_enhance': flag_enhance,
-                'enhance_outscale': enhance_outscale,
-                'upscaler_tile': upscaler_tile,
-                'upscaler_tile_pad': upscaler_tile_pad,
             }
             # update ArgumentConfig from user input
             self.args = update_args(self.args, args_user)
@@ -672,6 +679,10 @@ class GradioPipelineAnimal(LivePortraitPipelineAnimal):
             # Assuming LivePortraitWrapperAnimal also needs updated inference_cfg
             self.live_portrait_wrapper_animal.update_config(self.args.__dict__)
             self.cropper.update_config(self.args.__dict__)
+            # Update the EnhancementConfig of the parent class directly
+            self.enh_cfg.flag_enhance = flag_enhance
+            # The self.upscaler instance (in parent) uses self.enh_cfg,
+            # so it should now have the updated values when execute calls process_video.
 
             # Execute now returns 4 values
             video_path, video_path_concat, video_gif_path, source_img_with_landmarks = self.execute(self.args)
