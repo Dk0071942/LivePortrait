@@ -32,9 +32,7 @@ RUN pip3 install --no-cache-dir torch==2.3.0 torchvision==0.18.0 torchaudio==2.3
 
 # --- Python Diagnostic Script STARTS HERE ---
 # Add this section to check PyTorch's CUDA status
-RUN echo "Running CUDA and PyTorch diagnostics..." && \
-    nvcc --version && \
-    python3 -c <<EOF_PYTHON_SCRIPT
+RUN echo "Running CUDA and PyTorch diagnostics..." && nvcc --version && python3 <<EOF_PYTHON_SCRIPT
 import torch
 print(f'>>>> PyTorch version: {torch.__version__}')
 _is_cuda_available = torch.cuda.is_available()
