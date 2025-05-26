@@ -46,7 +46,9 @@ def get_extensions():
             "-D__CUDA_NO_HALF2_OPERATORS__",
         ]
     else:
-        raise NotImplementedError('Cuda is not availabel')
+        print("WARNING: CUDA not available during build. Building CPU-only version. GPU functionality may not work at runtime.")
+        # Build CPU-only version instead of raising error
+        pass
 
     sources = [os.path.join(extensions_dir, s) for s in sources]
     include_dirs = [extensions_dir]

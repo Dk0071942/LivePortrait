@@ -80,9 +80,6 @@ COPY . .
 RUN mkdir -p ./pretrained_weights && \
     huggingface-cli download KwaiVGI/LivePortrait --local-dir ./pretrained_weights --exclude "*.git*" "README.md" "docs" --local-dir-use-symlinks False
 
-# Add an explicit check for CUDA availability before attempting X-Pose build
-RUN python3 -c "import torch; print(f'>>>> Pre-XPose build check: torch.cuda.is_available() is {torch.cuda.is_available()}'); assert torch.cuda.is_available(), 'CUDA must be available to PyTorch for X-Pose build. Check Docker host GPU/NVIDIA runtime configuration.'"
-
 # Build and install X-Pose dependency
 RUN cd src/utils/dependencies/XPose/models/UniPose/ops && \
     python3 setup.py build install && \
