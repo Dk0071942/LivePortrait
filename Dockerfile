@@ -28,7 +28,7 @@ ENV LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH
 ENV TORCH_CUDA_ARCH_LIST="6.0;6.1;7.0;7.5;8.0;8.6;8.9;9.0"
 
 # Install specific PyTorch, torchvision, and torchaudio versions for CUDA 12.x
-RUN pip3 install --no-cache-dir torch==2.3.0 torchvision==0.18.0 torchaudio==2.3.0 --index-url https://download.pytorch.org/whl/cu121
+RUN pip3 install --no-cache-dir torch==2.4.0 torchvision==0.19.0 torchaudio==2.3.0 --index-url https://download.pytorch.org/whl/cu121
 
 # --- Python Diagnostic Script STARTS HERE ---
 # Add this section to check PyTorch's CUDA status
@@ -84,9 +84,7 @@ RUN mkdir -p ./pretrained_weights && \
     huggingface-cli download KwaiVGI/LivePortrait --local-dir ./pretrained_weights --exclude "*.git*" "README.md" "docs" --local-dir-use-symlinks False
 
 # Build and install X-Pose dependency with proper GPU support
-# First verify CUDA is available for compilation
 RUN cd src/utils/dependencies/XPose/models/UniPose/ops && \
-    python3 -c "import torch; print('CUDA available:', torch.cuda.is_available()); print('CUDA_HOME:', torch.utils.cpp_extension.CUDA_HOME)" && \
     MAX_JOBS=1 python3 setup.py build install && \
     cd /app
 
