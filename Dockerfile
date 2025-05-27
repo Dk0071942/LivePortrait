@@ -1,5 +1,5 @@
 # Base image: Updated to non-deprecated CUDA 12.x with cuDNN 9
-FROM nvidia/cuda:12.6-cudnn9-devel-ubuntu22.04
+FROM nvidia/cuda:12.6.0-cudnn-devel-ubuntu22.04
 
 # Set DEBIAN_FRONTEND to noninteractive to avoid prompts
 ENV DEBIAN_FRONTEND=noninteractive
