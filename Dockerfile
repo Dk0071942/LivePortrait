@@ -1,5 +1,5 @@
-# Base image: Ubuntu 22.04 with CUDA 12.1
-FROM nvidia/cuda:12.1.0-cudnn8-devel-ubuntu22.04
+# Base image: Updated to non-deprecated CUDA 12.x with cuDNN 9
+FROM nvidia/cuda:12.6-cudnn9-devel-ubuntu22.04
 
 # Set DEBIAN_FRONTEND to noninteractive to avoid prompts
 ENV DEBIAN_FRONTEND=noninteractive
@@ -14,6 +14,8 @@ RUN apt-get update && \
     python3-pip \
     python3.10-dev \
     build-essential \
+    wget \
+    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 # Set the working directory in the container
@@ -23,11 +25,9 @@ WORKDIR /app
 ENV CUDA_HOME=/usr/local/cuda
 ENV PATH=/usr/local/cuda/bin:$PATH
 ENV LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH
+ENV TORCH_CUDA_ARCH_LIST="6.0;6.1;7.0;7.5;8.0;8.6;8.9;9.0"
 
-# Install specific PyTorch, torchvision, and torchaudio versions
-# Note: This line was changed in your latest logs to torch 2.7.0 / cu128.
-# Ensure this is the version you intend to use.
-# Install specific PyTorch, torchvision, and torchaudio versions for CUDA 12.1
+# Install specific PyTorch, torchvision, and torchaudio versions for CUDA 12.x
 RUN pip3 install --no-cache-dir torch==2.3.0 torchvision==0.18.0 torchaudio==2.3.0 --index-url https://download.pytorch.org/whl/cu121
 
 # --- Python Diagnostic Script STARTS HERE ---
@@ -65,12 +65,15 @@ EOF_PYTHON_SCRIPT
 
 # Copy the requirements files BEFORE trying to install them
 COPY requirements.txt .
-# If you also have requirements_base.txt and it's needed, copy it too.
 COPY requirements_base.txt .
 
 # Install Python dependencies from requirements.txt
-# It's good practice to keep --no-cache-dir to reduce image size
-RUN pip3 install --no-cache-dir -r requirements.txt
+# Use onnxruntime-gpu version that's compatible with CUDA 12.x and cuDNN 9.x
+RUN pip3 install --no-cache-dir -r requirements_base.txt
+RUN pip3 install --no-cache-dir onnxruntime-gpu==1.21.0
+RUN pip3 install --no-cache-dir transformers==4.38.0
+RUN pip3 install --no-cache-dir git+https://github.com/XPixelGroup/BasicSR.git
+RUN pip3 install --no-cache-dir git+https://github.com/xinntao/Real-ESRGAN.git
 
 # Copy the rest of the application's source code
 COPY . .
@@ -80,9 +83,11 @@ COPY . .
 RUN mkdir -p ./pretrained_weights && \
     huggingface-cli download KwaiVGI/LivePortrait --local-dir ./pretrained_weights --exclude "*.git*" "README.md" "docs" --local-dir-use-symlinks False
 
-# Build and install X-Pose dependency
+# Build and install X-Pose dependency with proper GPU support
+# First verify CUDA is available for compilation
 RUN cd src/utils/dependencies/XPose/models/UniPose/ops && \
-    python3 setup.py build install && \
+    python3 -c "import torch; print('CUDA available:', torch.cuda.is_available()); print('CUDA_HOME:', torch.utils.cpp_extension.CUDA_HOME)" && \
+    MAX_JOBS=1 python3 setup.py build install && \
     cd /app
 
 # Make port 7860 available (Gradio default port)
