@@ -36,10 +36,9 @@ ENV CPLUS_INCLUDE_PATH=${CUDA_HOME}/include:$CPLUS_INCLUDE_PATH
 ENV TORCH_CUDA_ARCH_LIST="6.0;6.1;7.0;7.5;8.0;8.6;8.9;9.0"
 
 # Install PyTorch, torchvision, and torchaudio versions compatible with CUDA 12.9
-# Using --pre to get nightly/development builds like 2.7.0a0, which are typically
-# the first to support the very latest CUDA versions.
-# The URL `https://download.pytorch.org/whl/nightly/cu129` is specific to CUDA 12.9 nightly wheels.
-RUN pip3 install --no-cache-dir "torch>=2.7.0.dev" "torchvision>=0.22.0.dev" "torchaudio>=2.7.0.dev" --pre --index-url https://download.pytorch.org/whl/nightly/cu129
+# Using --pre to get the latest nightly/development builds. This is the most flexible way
+# to get the bleeding-edge PyTorch for the very latest CUDA version.
+RUN pip3 install --no-cache-dir torch torchvision torchaudio --pre --index-url https://download.pytorch.org/whl/nightly/cu129
 
 # --- Python Diagnostic Script STARTS HERE ---
 # Add this section to check PyTorch's CUDA status during the build
