@@ -122,6 +122,37 @@ def gpu_wrapped_execute_video(*args, **kwargs):
         return gradio_pipeline_animal.execute_video(*args, **kwargs)
 
 
+def gpu_wrapped_preview_crop_animal(*args, **kwargs):
+    # Expected args: source_image_input, driving_video_input, then crop flags and params, then tab_selection_state
+    # The number of args needs to match the inputs list for the button click event.
+    # Map args to named variables for clarity
+    input_source_image_path = args[0]
+    input_driving_video_path = args[1]
+    flag_do_crop_input = args[2]
+    scale = args[3]
+    vx_ratio = args[4]
+    vy_ratio = args[5]
+    flag_crop_driving_video_input = args[6]
+    scale_crop_driving_video = args[7]
+    vx_ratio_crop_driving_video = args[8]
+    vy_ratio_crop_driving_video = args[9]
+    tab_selection = args[10]
+
+    return gradio_pipeline_animal.preview_crop(
+        input_source_image_path=input_source_image_path,
+        input_driving_video_path=input_driving_video_path,
+        flag_do_crop_input=flag_do_crop_input,
+        scale=scale,
+        vx_ratio=vx_ratio,
+        vy_ratio=vy_ratio,
+        flag_crop_driving_video_input=flag_crop_driving_video_input,
+        scale_crop_driving_video=scale_crop_driving_video,
+        vx_ratio_crop_driving_video=vx_ratio_crop_driving_video,
+        vy_ratio_crop_driving_video=vy_ratio_crop_driving_video,
+        tab_selection=tab_selection
+    )
+
+
 # assets
 title_md = "assets/gradio/gradio_title.md"
 example_portrait_dir = "assets/examples/source"
@@ -145,6 +176,10 @@ output_video_i2v = gr.Video(autoplay=False)
 output_video_concat_i2v = gr.Video(autoplay=False)
 output_video_i2v_gif = gr.Image(type="numpy")
 output_source_landmarks = gr.Image(type="numpy", label="Source Image with Landmarks")
+
+# New components for animal crop preview
+preview_source_cropped_animal = gr.Image(label="Cropped Source Preview (Animal)", type="numpy", visible=True)
+preview_driving_cropped_animal = gr.Image(label="Cropped Driving Preview (Animal)", type="numpy", visible=True)
 
 
 with gr.Blocks(theme=gr.themes.Soft(font=[gr.themes.GoogleFont("Plus Jakarta Sans")])) as demo:
@@ -254,7 +289,8 @@ with gr.Blocks(theme=gr.themes.Soft(font=[gr.themes.GoogleFont("Plus Jakarta San
 
     gr.Markdown(load_description("assets/gradio/gradio_description_animate_clear.md"))
     with gr.Row():
-        process_button_animation = gr.Button("🚀 Animate", variant="primary")
+        preview_crop_button_animal = gr.Button("✂️ Preview Crop (Animal)", variant="secondary") # New button for animals
+        process_button_animation = gr.Button("🦁 Animate Animal", variant="primary")
     with gr.Row():
         with gr.Column():
             with gr.Accordion(open=True, label="The animated video in the cropped image space"):
@@ -270,6 +306,20 @@ with gr.Blocks(theme=gr.themes.Soft(font=[gr.themes.GoogleFont("Plus Jakarta San
                 output_source_landmarks.render()
     with gr.Row():
         process_button_reset = gr.ClearButton([source_image_input, driving_video_input, output_video_i2v, output_video_concat_i2v, output_video_i2v_gif, output_source_landmarks], value="🧹 Clear")
+
+    # Adding row for animal crop previews
+    with gr.Row():
+        with gr.Column():
+            preview_source_cropped_animal.render()
+        with gr.Column():
+            preview_driving_cropped_animal.render()
+
+    with gr.Accordion("Output GIF (Optional)", open=False):
+        with gr.Row():
+            with gr.Column():
+                pass
+            with gr.Column():
+                pass
 
     with gr.Row():
         # Examples
@@ -309,12 +359,13 @@ with gr.Blocks(theme=gr.themes.Soft(font=[gr.themes.GoogleFont("Plus Jakarta San
                     cache_examples=False,
                 )
 
+    # binding functions for buttons
     process_button_animation.click(
         fn=gpu_wrapped_execute_video,
         inputs=[
             source_image_input,
             driving_video_input,
-            driving_video_pickle_input,
+            driving_video_pickle_input, # driving_video_pickle_input for animals
             flag_do_crop_input,
             flag_remap_input,
             driving_multiplier,
@@ -326,11 +377,37 @@ with gr.Blocks(theme=gr.themes.Soft(font=[gr.themes.GoogleFont("Plus Jakarta San
             scale_crop_driving_video,
             vx_ratio_crop_driving_video,
             vy_ratio_crop_driving_video,
-            tab_selection_state,
-            flag_enhance_input,
+            tab_selection_state, # Use the state for tab selection
+            flag_enhance_input, # Added for enhancement
         ],
-        outputs=[output_video_i2v, output_video_concat_i2v, output_video_i2v_gif, output_source_landmarks],
+        outputs=[
+            output_video_i2v,
+            output_video_concat_i2v,
+            output_video_i2v_gif,
+            output_source_landmarks # Added for landmarks
+        ],
         show_progress=True
+    )
+
+    preview_crop_button_animal.click(
+        fn=gpu_wrapped_preview_crop_animal,
+        inputs=[
+            source_image_input,
+            driving_video_input, # Driving video for preview
+            flag_do_crop_input,
+            scale,
+            vx_ratio,
+            vy_ratio,
+            flag_crop_driving_video_input,
+            scale_crop_driving_video,
+            vx_ratio_crop_driving_video,
+            vy_ratio_crop_driving_video,
+            tab_selection_state, # To determine if driving is 'Video'
+        ],
+        outputs=[
+            preview_source_cropped_animal,
+            preview_driving_cropped_animal,
+        ]
     )
 
 # --- Combine Demos --- (Optional: Combine or launch separately)

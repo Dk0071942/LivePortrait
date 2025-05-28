@@ -68,6 +68,10 @@ def gpu_wrapped_execute_video_retargeting(*args, **kwargs):
     return gradio_pipeline.execute_video_retargeting(*args, **kwargs)
 
 
+def gpu_wrapped_preview_crop(*args, **kwargs):
+    return gradio_pipeline.preview_crop(*args, **kwargs)
+
+
 def reset_sliders(*args, **kwargs):
     return 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 2.5, True, True
 
@@ -125,6 +129,10 @@ retargeting_output_image = gr.Image(type="numpy")
 retargeting_output_image_paste_back = gr.Image(type="numpy")
 output_video = gr.Video(autoplay=False)
 output_video_paste_back = gr.Video(autoplay=False)
+
+# New components for crop preview
+preview_source_cropped = gr.Image(label="Cropped Source Preview", type="numpy", visible=True)
+preview_driving_cropped = gr.Image(label="Cropped Driving Preview", type="numpy", visible=True)
 
 with gr.Blocks(theme=gr.themes.Soft(font=[gr.themes.GoogleFont("Plus Jakarta Sans")])) as demo:
     gr.HTML(load_description(title_md))
@@ -248,27 +256,37 @@ with gr.Blocks(theme=gr.themes.Soft(font=[gr.themes.GoogleFont("Plus Jakarta San
                 animation_region = gr.Radio(["exp", "pose", "lip", "eyes", "all"], value="all", label="animation region")
                 driving_option_input = gr.Radio(['expression-friendly', 'pose-friendly'], value="expression-friendly", label="driving option (i2v)")
                 driving_multiplier = gr.Number(value=1.0, label="driving multiplier (i2v)", minimum=0.0, maximum=2.0, step=0.02)
-                driving_smooth_observation_variance = gr.Number(value=3e-7, label="motion smooth strength (v2v)", minimum=1e-11, maximum=1e-2, step=1e-8)
+                driving_smooth_observation_variance_video = gr.Number(value=3e-7, label="motion smooth strength (v2v)", minimum=1e-11, maximum=1e-2, step=1e-8)
 
     gr.Markdown(load_description("assets/gradio/gradio_description_animate_clear.md"))
     with gr.Row():
-        process_button_animation = gr.Button("🚀 Animate", variant="primary")
+        preview_crop_button = gr.Button("✂️ Preview Crop", variant="secondary")
+        submit_button = gr.Button("🚀 Animate", variant="primary")
+    with gr.Row():
+        with gr.Column(visible=False) as out_image_column:
+            with gr.Tabs():
+                with gr.TabItem("Cropped"):
+                    output_image_animation = gr.Image(type="numpy", label="Animated Result")
+                with gr.TabItem("Pasted Back"):
+                    output_image_paste_back_animation = gr.Image(type="numpy", label="Animated Result (Pasted Back)")
+        with gr.Column(visible=True) as out_video_column:
+            with gr.Tabs():
+                with gr.TabItem("Cropped"):
+                    output_video_animation = gr.Video(label="Animated Result")
+                with gr.TabItem("Pasted Back"):
+                    output_video_paste_back_animation = gr.Video(label="Animated Result (Pasted Back)")
+    # Adding row for crop previews
     with gr.Row():
         with gr.Column():
-            output_video_i2v = gr.Video(autoplay=False, label="The animated video in the original image space")
+            preview_source_cropped.render()
         with gr.Column():
-            output_video_concat_i2v = gr.Video(autoplay=False, label="The animated video")
-    with gr.Row():
-        with gr.Column():
-            output_image_i2i = gr.Image(type="numpy", label="The animated image in the original image space", visible=False)
-        with gr.Column():
-            output_image_concat_i2i = gr.Image(type="numpy", label="The animated image", visible=False)
-    with gr.Row():
-        process_button_reset = gr.ClearButton([source_image_input, source_video_input, driving_video_pickle_input, driving_video_input, driving_image_input, output_video_i2v, output_video_concat_i2v, output_image_i2i, output_image_concat_i2i], value="🧹 Clear")
+            preview_driving_cropped.render()
 
     with gr.Row():
-        # Examples
-        gr.Markdown("## You could also choose the examples below by one click ⬇️")
+        process_button_reset = gr.ClearButton([source_image_input, source_video_input, driving_video_pickle_input, driving_video_input, driving_image_input, output_video_animation, output_video_paste_back_animation, output_image_animation, output_image_paste_back_animation], value="🧹 Clear")
+
+    # Examples
+    gr.Markdown("## You could also choose the examples below by one click ⬇️")
     with gr.Row():
         with gr.Tabs():
             with gr.TabItem("🖼️ Portrait Animation"):
@@ -298,7 +316,7 @@ with gr.Blocks(theme=gr.themes.Soft(font=[gr.themes.GoogleFont("Plus Jakarta San
                         flag_do_crop_input,
                         flag_remap_input,
                         flag_crop_driving_video_input,
-                        driving_smooth_observation_variance,
+                        driving_smooth_observation_variance_video,
                     ],
                     outputs=[output_image, output_image_paste_back],
                     examples_per_page=len(data_examples_v2v),
@@ -381,7 +399,7 @@ with gr.Blocks(theme=gr.themes.Soft(font=[gr.themes.GoogleFont("Plus Jakarta San
                 retargeting_output_image,
                 retargeting_output_image_paste_back,
             ],
-            value="🧹 Clear"
+            value="�� Clear"
         )
 
     # Retargeting Video
@@ -428,7 +446,7 @@ with gr.Blocks(theme=gr.themes.Soft(font=[gr.themes.GoogleFont("Plus Jakarta San
         )
 
     # binding functions for buttons
-    process_button_animation.click(
+    submit_button.click(
         fn=gpu_wrapped_execute_video,
         inputs=[
             source_image_input,
@@ -451,14 +469,46 @@ with gr.Blocks(theme=gr.themes.Soft(font=[gr.themes.GoogleFont("Plus Jakarta San
             scale_crop_driving_video,
             vx_ratio_crop_driving_video,
             vy_ratio_crop_driving_video,
-            driving_smooth_observation_variance,
+            driving_smooth_observation_variance_video,
             tab_selection,
             v_tab_selection,
         ],
-        outputs=[output_video_i2v, output_video_i2v, output_video_concat_i2v, output_video_concat_i2v, output_image_i2i, output_image_i2i, output_image_concat_i2i, output_image_concat_i2i],
+        outputs=[
+            output_video_animation,
+            out_video_column,
+            output_video_paste_back_animation,
+            out_video_column,
+            output_image_animation,
+            out_image_column,
+            output_image_paste_back_animation,
+            out_image_column
+        ],
         show_progress=True
     )
 
+    preview_crop_button.click(
+        fn=gpu_wrapped_preview_crop,
+        inputs=[
+            source_image_input,
+            source_video_input,
+            driving_video_input,
+            driving_image_input,
+            flag_do_crop_input,
+            scale,
+            vx_ratio,
+            vy_ratio,
+            flag_crop_driving_video_input,
+            scale_crop_driving_video,
+            vx_ratio_crop_driving_video,
+            vy_ratio_crop_driving_video,
+            tab_selection,
+            v_tab_selection,
+        ],
+        outputs=[
+            preview_source_cropped,
+            preview_driving_cropped,
+        ]
+    )
 
     retargeting_input_image.change(
         fn=gradio_pipeline.init_retargeting_image,

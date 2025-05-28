@@ -232,6 +232,153 @@ class GradioPipeline(LivePortraitPipeline):
             raise gr.Error("Please upload the source portrait or source video, and driving video 🤗🤗🤗", duration=5)
 
     @torch.no_grad()
+    def preview_crop(
+        self,
+        input_source_image_path=None,
+        input_source_video_path=None,
+        input_driving_video_path=None,
+        input_driving_image_path=None,
+        # Crop parameters, mirroring execute_video
+        flag_do_crop_input=True,
+        scale=2.3,
+        vx_ratio=0.0,
+        vy_ratio=-0.125,
+        flag_crop_driving_video_input=True,
+        scale_crop_driving_video=2.2,
+        vx_ratio_crop_driving_video=0.0,
+        vy_ratio_crop_driving_video=-0.1,
+        tab_selection=None, # From main UI
+        v_tab_selection=None # From main UI
+    ):
+        """Preview the cropping results for source and driving inputs."""
+        # Determine source path
+        if tab_selection == 'Image':
+            input_source_path = input_source_image_path
+        elif tab_selection == 'Video':
+            input_source_path = input_source_video_path
+        else: # Default to image if not specified, or handle error
+            # Attempt to use image path, or raise error if critical
+            if input_source_image_path:
+                input_source_path = input_source_image_path
+            else:
+                gr.Warning("Source input type not specified or path is missing.")
+                return None, None
+
+        # Determine driving path
+        if v_tab_selection == 'Video':
+            input_driving_path = input_driving_video_path
+        elif v_tab_selection == 'Image':
+            input_driving_path = input_driving_image_path
+        # No pickle for preview, it's already processed
+        else: # Default to video, or handle error
+            if input_driving_video_path:
+                input_driving_path = input_driving_video_path
+            else:
+                gr.Warning("Driving input type not specified or path is missing.")
+                return None, None
+
+        if not input_source_path or not osp.exists(input_source_path):
+            gr.Warning("Source path is missing or invalid.")
+            return None, None
+        if not input_driving_path or not osp.exists(input_driving_path):
+            gr.Warning("Driving path is missing or invalid.")
+            return None, None
+
+        # Update crop_cfg with UI values
+        crop_args_user = {
+            'flag_do_crop': flag_do_crop_input, # General flag for source
+            'scale': scale,
+            'vx_ratio': vx_ratio,
+            'vy_ratio': vy_ratio,
+            # For driving video crop, specific flags are usually handled by execute logic,
+            # here we rely on flag_crop_driving_video_input directly.
+            'scale_crop_driving_video': scale_crop_driving_video,
+            'vx_ratio_crop_driving_video': vx_ratio_crop_driving_video,
+            'vy_ratio_crop_driving_video': vy_ratio_crop_driving_video,
+        }
+        self.cropper.update_config(crop_args_user)
+
+
+        # Process source
+        source_cropped_display = None
+        if input_source_path:
+            if input_source_path.lower().endswith(('.png', '.jpg', '.jpeg')) :
+                img_rgb = load_image_rgb(input_source_path)
+            elif input_source_path.lower().endswith(('.mp4', '.mov', '.avi', '.mkv')): # Video source
+                source_frames = load_video(input_source_path)
+                if not source_frames:
+                    gr.Warning("Could not load source video.")
+                    return None, None
+                img_rgb = source_frames[0] # Use first frame for preview
+            else:
+                gr.Warning("Unsupported source file type.")
+                return None, None
+
+            img_rgb = resize_to_limit(img_rgb, self.args.source_max_dim, self.args.source_division)
+            if flag_do_crop_input:
+                ret_s = self.cropper.crop_source_image(img_rgb, self.cropper.crop_cfg)
+                if ret_s:
+                    source_cropped_display = ret_s['img_crop']
+                else:
+                    gr.Warning("No face detected in source input for cropping.")
+                    source_cropped_display = img_rgb # Show original if crop failed
+            else:
+                source_cropped_display = img_rgb # Show original if no crop
+
+        # Process driving
+        driving_cropped_display = None
+        if input_driving_path:
+            if input_driving_path.lower().endswith(('.png', '.jpg', '.jpeg')): # Driving image
+                driving_img_rgb = load_image_rgb(input_driving_path)
+                driving_frames_rgb = [driving_img_rgb]
+            elif input_driving_path.lower().endswith(('.mp4', '.mov', '.avi', '.mkv')): # Driving video
+                driving_frames_rgb = load_video(input_driving_path)
+                if not driving_frames_rgb:
+                    gr.Warning("Could not load driving video.")
+                    return None, None
+            else:
+                gr.Warning("Unsupported driving file type.")
+                return None, None
+
+            # Always take the first frame for preview
+            first_frame_rgb = driving_frames_rgb[0]
+
+            if flag_crop_driving_video_input: # This flag comes from UI
+                # crop_driving_video expects a list of frames
+                # We also need to ensure the cropper's config is updated for driving video specifically if params differ
+                # For simplicity, using general crop_cfg which has been updated with UI values
+                # crop_driving_video internally handles global_bbox based on the list.
+                # For a single frame preview, we can adapt or use a simpler path if available.
+                # Re-using crop_source_image logic if it's general enough, or adapt.
+                # The `crop_driving_video` method calculates a global bbox over frames.
+                # For a single frame preview, this might be overkill or behave differently.
+                # A simpler approach for a single frame might be to use crop_image directly if landmarks are found.
+                # However, to stick to existing cropper methods:
+
+                # Option 1: Use crop_source_image (if applicable for driving logic too)
+                # This would be if driving frame processing is similar to source image.
+                # ret_d = self.cropper.crop_source_image(first_frame_rgb, self.cropper.crop_cfg) # Example
+
+                # Option 2: Use crop_driving_video with a single frame list
+                # This is more aligned with the method name but check its internal logic for single frames
+                # We need to ensure specific driving video crop params are used if they differ from source ones.
+                # The Cropper class already has crop_cfg which is updated by update_config.
+                # So, if scale_crop_driving_video etc. are part of CropConfig they should be used.
+
+                # Let's assume crop_cfg is correctly set by update_config for both source and driving aspects
+                # and call crop_driving_video with a list containing only the first frame.
+                ret_d = self.cropper.crop_driving_video([first_frame_rgb]) # Pass as a list
+                if ret_d and ret_d['frame_crop_lst']:
+                    driving_cropped_display = ret_d['frame_crop_lst'][0]
+                else:
+                    gr.Warning("No face detected in driving input for cropping or crop failed.")
+                    driving_cropped_display = first_frame_rgb # Show original if crop failed
+            else:
+                driving_cropped_display = first_frame_rgb # Show original if no crop
+
+        return source_cropped_display, driving_cropped_display
+
+    @torch.no_grad()
     def execute_image_retargeting(
         self,
         input_eye_ratio: float,
@@ -722,3 +869,106 @@ class GradioPipelineAnimal(LivePortraitPipelineAnimal):
         except Exception as e:
             log(f"Error during landmark visualization: {e}", style="bold red")
             raise gr.Error(f"Failed to visualize landmarks: {e}")
+
+    @torch.no_grad()
+    def preview_crop(
+        self,
+        input_source_image_path=None, # Animal source is always an image
+        input_driving_video_path=None, # Animal driving is typically a video or pickle
+        # input_driving_video_pickle_path=None, # Not used for preview
+        # Crop parameters, mirroring execute_video for animals
+        flag_do_crop_input=True,
+        scale=2.3,
+        vx_ratio=0.0,
+        vy_ratio=-0.125,
+        flag_crop_driving_video_input=True,
+        scale_crop_driving_video=2.2,
+        vx_ratio_crop_driving_video=0.0,
+        vy_ratio_crop_driving_video=-0.1,
+        tab_selection=None # To know if driving is video (pickle not supported for preview)
+    ):
+        """Preview the cropping results for source image and driving video for animals."""
+
+        if not input_source_image_path or not osp.exists(input_source_image_path):
+            gr.Warning("Source image path is missing or invalid.")
+            return None, None
+
+        # For animals, driving input for preview will be video. Pickles are pre-processed.
+        # The tab_selection in app_animals.py helps determine this.
+        # We only support video for preview crop of driving input.
+        if tab_selection != 'Video' or not input_driving_video_path or not osp.exists(input_driving_video_path):
+            gr.Warning("Driving video path is missing, invalid, or not selected for preview.")
+            # Return only source preview if driving is not a valid video
+            # Or, could return (source_cropped_display, None)
+            # For now, let's try to make it clear both are expected or none are shown for crop preview
+            # For a better UX, we might return source preview and a message for driving.
+            # However, the user asked for *both* inputs to be previewed.
+            if input_source_image_path and osp.exists(input_source_image_path):
+                 img_rgb = load_image_rgb(input_source_image_path)
+                 img_rgb = resize_to_limit(img_rgb, self.args.source_max_dim, self.args.source_division)
+                 if flag_do_crop_input:
+                    ret_s = self.cropper.crop_source_image(img_rgb, self.cropper.crop_cfg)
+                    if ret_s:
+                        return ret_s['img_crop'], None
+                    else:
+                        gr.Warning("No face detected in source image for cropping.")
+                        return img_rgb, None
+                 else:
+                    return img_rgb, None # Show original if no crop
+            return None, None # If source also fails or wasn't provided properly
+
+        # Update crop_cfg with UI values
+        # Note: self.args might also hold some defaults. The cropper has its own crop_cfg.
+        # We should ensure the cropper's config is specifically updated for this operation.
+        crop_args_user = {
+            'flag_do_crop': flag_do_crop_input, # For source image
+            'scale': scale,
+            'vx_ratio': vx_ratio,
+            'vy_ratio': vy_ratio,
+            # For driving video crop
+            'scale_crop_driving_video': scale_crop_driving_video,
+            'vx_ratio_crop_driving_video': vx_ratio_crop_driving_video,
+            'vy_ratio_crop_driving_video': vy_ratio_crop_driving_video,
+        }
+        # It's crucial that these keys match attributes in CropConfig
+        # and that self.cropper.update_config correctly applies them.
+        self.cropper.update_config(crop_args_user) # Updates self.cropper.crop_cfg
+
+        # Process source image (animal source is always an image)
+        source_cropped_display = None
+        img_rgb = load_image_rgb(input_source_image_path)
+        img_rgb = resize_to_limit(img_rgb, self.args.source_max_dim, self.args.source_division)
+        if flag_do_crop_input:
+            # Pass the cropper's current crop_cfg, which should have been updated
+            ret_s = self.cropper.crop_source_image(img_rgb, self.cropper.crop_cfg)
+            if ret_s:
+                source_cropped_display = ret_s['img_crop']
+            else:
+                gr.Warning("No face detected in source image for cropping.")
+                source_cropped_display = img_rgb # Show original if crop failed
+        else:
+            source_cropped_display = img_rgb # Show original if no crop
+
+        # Process driving video (first frame)
+        driving_cropped_display = None
+        driving_frames_rgb = load_video(input_driving_video_path)
+        if not driving_frames_rgb:
+            gr.Warning("Could not load driving video.")
+            # source_cropped_display might be valid, so return it
+            return source_cropped_display, None
+
+        first_frame_rgb = driving_frames_rgb[0]
+
+        if flag_crop_driving_video_input: # This flag comes from UI
+            # Use the cropper's updated crop_cfg
+            # crop_driving_video expects a list of frames.
+            ret_d = self.cropper.crop_driving_video([first_frame_rgb]) # Pass as a list
+            if ret_d and ret_d['frame_crop_lst']:
+                driving_cropped_display = ret_d['frame_crop_lst'][0]
+            else:
+                gr.Warning("No face detected in driving video for cropping or crop failed.")
+                driving_cropped_display = first_frame_rgb # Show original if crop failed
+        else:
+            driving_cropped_display = first_frame_rgb # Show original if no crop
+
+        return source_cropped_display, driving_cropped_display
