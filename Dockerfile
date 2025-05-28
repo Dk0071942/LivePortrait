@@ -38,10 +38,15 @@ ENV TORCH_CUDA_ARCH_LIST="6.0;6.1;7.0;7.5;8.0;8.6;8.9"
 RUN pip3 install --no-cache-dir torch==2.3.1 torchvision==0.18.1 torchaudio==2.3.1 --index-url https://download.pytorch.org/whl/cu118
 
 # --- Python Diagnostic Script STARTS HERE ---
-RUN echo "Running CUDA and PyTorch diagnostics..." && \
+# To ensure this runs and isn't cached from a potentially different context,
+# add a cache-busting element like the current date.
+RUN echo "Running CUDA and PyTorch diagnostics... $(date)" && \
     nvcc --version && \
-    export CUDA_HOME=/usr/local/cuda && \
-    echo ">>>> CUDA_HOME from shell: $CUDA_HOME" && \
+    export CUDA_HOME_SHELL_EXPORT=/usr/local/cuda && \
+    echo ">>>> CUDA_HOME from shell export: $CUDA_HOME_SHELL_EXPORT" && \
+    echo ">>>> CUDA_HOME from ENV: $CUDA_HOME" && \
+    echo ">>>> PATH from ENV: $PATH" && \
+    echo ">>>> LD_LIBRARY_PATH from ENV: $LD_LIBRARY_PATH" && \
     python3 <<EOF_PYTHON_SCRIPT
 import os
 import torch
@@ -56,19 +61,19 @@ if _is_cuda_available:
         print(f'>>>> Current CUDA device: {torch.cuda.current_device()}')
         print(f'>>>> Device name: {torch.cuda.get_device_name(0)}')
     else:
-        print('>>>> No CUDA devices found by PyTorch (though CUDA is reported as available).')
+        print('>>>> No CUDA devices found by PyTorch (though CUDA is reported as available). This is OK for build if toolkit is fine.')
     print(f'>>>> torch.utils.cpp_extension.CUDA_HOME from PyTorch: {torch.utils.cpp_extension.CUDA_HOME}')
 else:
-    print('>>>> CUDA *NOT* available to PyTorch.')
+    print('>>>> CUDA *NOT* available to PyTorch according to torch.cuda.is_available().')
     if hasattr(torch.version, 'cuda') and torch.version.cuda is not None:
         print(f'>>>> PyTorch compiled with CUDA version: {torch.version.cuda}')
     else:
         print('>>>> PyTorch CUDA version attribute not found or is None.')
-    print(f'>>>> os.environ.get("CUDA_HOME"): {os.environ.get("CUDA_HOME")}')
+    print(f'>>>> os.environ.get("CUDA_HOME") as seen by Python: {os.environ.get("CUDA_HOME")}')
     if hasattr(torch.utils, 'cpp_extension') and torch.utils.cpp_extension is not None and hasattr(torch.utils.cpp_extension, 'CUDA_HOME') and torch.utils.cpp_extension.CUDA_HOME is not None:
-        print(f'>>>> torch.utils.cpp_extension.CUDA_HOME: {torch.utils.cpp_extension.CUDA_HOME}')
+        print(f'>>>> torch.utils.cpp_extension.CUDA_HOME from PyTorch: {torch.utils.cpp_extension.CUDA_HOME}')
     else:
-        print('>>>> torch.utils.cpp_extension.CUDA_HOME not found or is None.')
+        print('>>>> torch.utils.cpp_extension.CUDA_HOME not found or is None (when torch.cuda.is_available() is False).')
 print('>>>> End of diagnostics <<<<')
 EOF_PYTHON_SCRIPT
 # --- Python Diagnostic Script ENDS HERE ---
@@ -93,15 +98,31 @@ RUN mkdir -p ./pretrained_weights && \
     huggingface-cli download KwaiVGI/LivePortrait --local-dir ./pretrained_weights --exclude "*.git*" "README.md" "docs" --local-dir-use-symlinks False
 
 # Build and install X-Pose dependency with proper GPU support (needed for Animals mode)
-# Explicitly ensuring CUDA_HOME and other critical variables are passed to setup.py's environment.
-# Note: TORCH_CUDA_ARCH_LIST is already set as an ENV variable above.
 RUN cd src/utils/dependencies/XPose/models/UniPose/ops && \
-    echo "--- Attempting to build XPose UniPose ops with CUDA support (FORCE_CUDA=1) ---" && \
-    CUDA_HOME=/usr/local/cuda \
-    PATH=/usr/local/cuda/bin:$PATH \
-    LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH \
-    FORCE_CUDA=1 \
-    MAX_JOBS=1 python3 setup.py build_ext --verbose build install && \
+    echo "--- Current directory: $(pwd) ---" && \
+    echo "--- Listing directory contents (ops): ---" && \
+    ls -la && \
+    echo "--- Environment check before nvcc: ---" && \
+    echo "--- PATH: $PATH" && \
+    echo "--- LD_LIBRARY_PATH: $LD_LIBRARY_PATH" && \
+    echo "--- CUDA_HOME: $CUDA_HOME" && \
+    echo "--- TORCH_CUDA_ARCH_LIST: $TORCH_CUDA_ARCH_LIST" && \
+    echo "--- Running nvcc --version directly: ---" && \
+    nvcc --version && \
+    NVCC_EXIT_CODE=$? && \
+    echo "--- nvcc exit code: $NVCC_EXIT_CODE ---" && \
+    if [ $NVCC_EXIT_CODE -ne 0 ]; then \
+        echo "CRITICAL: nvcc command failed! CUDA toolkit is not correctly set up or accessible." >&2; \
+        exit 1; \
+    fi && \
+    echo "--- nvcc check PASSED. Attempting to build XPose UniPose ops with CUDA support (FORCE_CUDA=1) ---" && \
+    CUDA_HOME_BUILD=/usr/local/cuda \
+    PATH_BUILD=/usr/local/cuda/bin:$PATH \
+    LD_LIBRARY_PATH_BUILD=/usr/local/cuda/lib64:$LD_LIBRARY_PATH \
+    FORCE_CUDA_BUILD=1 \
+    MAX_JOBS_BUILD=1 \
+    env CUDA_HOME=${CUDA_HOME_BUILD} PATH=${PATH_BUILD} LD_LIBRARY_PATH=${LD_LIBRARY_PATH_BUILD} FORCE_CUDA=${FORCE_CUDA_BUILD} MAX_JOBS=${MAX_JOBS_BUILD} TORCH_CUDA_ARCH_LIST="${TORCH_CUDA_ARCH_LIST}" \
+    python3 setup.py build_ext --verbose build install && \
     echo "--- XPose UniPose ops build finished ---" && \
     cd /app
 
