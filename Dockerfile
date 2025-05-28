@@ -1,5 +1,5 @@
 # Base image: Updated for compatibility with host CUDA 12.4 (using CUDA 12.1.1 toolkit)
-FROM nvidia/cuda:12.1.1-cudnn8-devel-ubuntu22.04
+FROM nvidia/cuda:12.9.0-cudnn-devel-ubuntu22.04
 
 # Set DEBIAN_FRONTEND to noninteractive to avoid prompts
 ENV DEBIAN_FRONTEND=noninteractive
@@ -68,7 +68,7 @@ EOF_PYTHON_SCRIPT
 # Copy the requirements files BEFORE trying to install them
 # (Ensure requirements.txt and requirements_base.txt are in the build context)
 COPY requirements.txt .
-COPY requirements_base.txt .  
+COPY requirements_base.txt .
 
 # Install Python dependencies
 # 1. Install from your custom requirements_base.txt (if any)
