@@ -88,7 +88,7 @@ RUN pip3 install --no-cache-dir -r requirements.txt
 # The 'libcublasLt.so.11' error strongly suggests an ONNX Runtime build
 # that expects CUDA 11.x libraries, despite CUDA 12.x being present.
 # Version 1.17.0 should fix this.
-RUN pip3 install --no-cache-dir onnxruntime-gpu==1.17.0
+RUN pip3 install --no-cache-dir onnxruntime-gpu==1.16.2
 RUN pip3 install --no-cache-dir transformers==4.38.0    # Pinned version
 RUN pip3 install --no-cache-dir git+https://github.com/XPixelGroup/BasicSR.git
 RUN pip3 install --no-cache-dir git+https://github.com/xinntao/Real-ESRGAN.git
