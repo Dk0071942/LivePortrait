@@ -92,7 +92,7 @@ RUN mkdir -p ./pretrained_weights && \
 # Build and install X-Pose dependency with proper GPU support (needed for Animals mode)
 # This path is from the original LivePortrait readme.md for building X-Pose op.
 RUN cd src/utils/dependencies/XPose/models/UniPose/ops && \
-    MAX_JOBS=1 python3 setup.py build install && \
+    CUDA_HOME=/usr/local/cuda MAX_JOBS=1 python3 setup.py build install && \
     cd /app
 
 # Make port 7860 available (Gradio default port)
