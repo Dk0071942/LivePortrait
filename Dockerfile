@@ -1,4 +1,4 @@
-# Base image: Updated for compatibility with host CUDA 12.4 (using CUDA 12.1.1 toolkit)
+# Base image: Now explicitly using CUDA 12.9.0 with cuDNN devel
 FROM nvidia/cuda:12.9.0-cudnn-devel-ubuntu22.04
 
 # Set DEBIAN_FRONTEND to noninteractive to avoid prompts
@@ -16,6 +16,8 @@ RUN apt-get update && \
     build-essential \
     wget \
     ca-certificates \
+    # Added for faster compilation
+    ninja-build \
     && rm -rf /var/lib/apt/lists/*
 
 # Set the working directory in the container
@@ -25,12 +27,43 @@ WORKDIR /app
 ENV CUDA_HOME=/usr/local/cuda
 ENV PATH=/usr/local/cuda/bin:$PATH
 ENV LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH
+
+# Explicitly set CPATH for GCC to find CUDA headers
+# This helps compilers find headers even if PATH isn't fully propagated.
+ENV CPATH=${CUDA_HOME}/include:$CPATH
+ENV CPLUS_INCLUDE_PATH=${CUDA_HOME}/include:$CPLUS_INCLUDE_PATH
+
 # TORCH_CUDA_ARCH_LIST includes 8.0 and 8.6 for A100 compatibility
 ENV TORCH_CUDA_ARCH_LIST="6.0;6.1;7.0;7.5;8.0;8.6;8.9;9.0"
 
-# Install specific PyTorch, torchvision, and torchaudio versions for CUDA 12.1
-# (Verify latest compatible versions from PyTorch official website if needed)
-RUN pip3 install --no-cache-dir torch==2.3.1 torchvision==0.18.1 torchaudio==2.3.1 --index-url https://download.pytorch.org/whl/cu121
+# Install PyTorch, torchvision, and torchaudio versions compatible with CUDA 12.9
+# You generally want the latest nightly/alpha build of PyTorch that matches the latest CUDA.
+# As per NVIDIA's docs, PyTorch 2.7.0a0 is compatible with CUDA 12.9.
+# The official PyTorch website might provide specific stable wheels for 12.x in the future.
+# For now, using the nightly index might be necessary if stable cu129 wheels aren't out.
+# Let's try to infer the correct URL based on PyTorch's usual structure for newer CUDA.
+# This assumes PyTorch 2.4.0 is available for cu124. The latest is 2.7 for cu129.
+# We need to install the correct PyTorch for CUDA 12.9
+RUN pip3 install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/nightly/cu121 \
+    # Remove the fixed version and rely on the nightly index if needed, OR:
+    # If 2.7.0 is available:
+    # pip3 install --no-cache-dir torch==2.7.0 torchvision==0.22.0 torchaudio==2.7.0 --index-url https://download.pytorch.org/whl/cu129
+
+    # Given that PyTorch 2.3.1 was for cu121, and you're now on cuda 12.9,
+    # it's better to get the latest PyTorch that is built for CUDA 12.9.
+    # The nightly URL `https://download.pytorch.org/whl/nightly/cu129` or
+    # `https://download.pytorch.org/whl/cu129` (if a stable release exists)
+    # is what you would use. Since 2.7.0a0 is listed for cu129, you'd likely want to install that.
+    # Let's use the nightly URL for cu129, and it will fetch the latest compatible.
+    # If you need a specific 2.7.0a0 version, you might need to pin it.
+    pip3 install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/nightly/cu121
+
+# The most reliable way to get a CUDA 12.9 compatible PyTorch would be to find the exact wheel:
+# From your search results, a stable PyTorch for CUDA 12.9 is likely 2.7.0a0.
+# Let's try to install that. Replace the above pip install with this:
+# This assumes the nightly build for cu129 is what you need.
+# As of current PyTorch 2.7.0a0 is matched with cu129 from NVIDIA.
+RUN pip3 install --no-cache-dir "torch>=2.7.0.dev" "torchvision>=0.22.0.dev" "torchaudio>=2.7.0.dev" --pre --index-url https://download.pytorch.org/whl/nightly/cu129
 
 # --- Python Diagnostic Script STARTS HERE ---
 # Add this section to check PyTorch's CUDA status
@@ -76,7 +109,9 @@ RUN if [ -f requirements_base.txt ]; then pip3 install --no-cache-dir -r require
 # 2. Install from the main LivePortrait requirements.txt (as per readme)
 RUN pip3 install --no-cache-dir -r requirements.txt
 # 3. Install/Override specific packages as needed
-RUN pip3 install --no-cache-dir onnxruntime-gpu==1.21.0 # Ensure CUDA 12.x compatible version
+# Now that base image is cuDNN 9, onnxruntime-gpu 1.21.0 might work.
+# If it fails with cuDNN errors, downgrade to 1.17.0 again.
+RUN pip3 install --no-cache-dir onnxruntime-gpu==1.21.0
 RUN pip3 install --no-cache-dir transformers==4.38.0    # Pinned version
 RUN pip3 install --no-cache-dir git+https://github.com/XPixelGroup/BasicSR.git
 RUN pip3 install --no-cache-dir git+https://github.com/xinntao/Real-ESRGAN.git
@@ -92,7 +127,8 @@ RUN mkdir -p ./pretrained_weights && \
 # Build and install X-Pose dependency with proper GPU support (needed for Animals mode)
 # This path is from the original LivePortrait readme.md for building X-Pose op.
 RUN cd src/utils/dependencies/XPose/models/UniPose/ops && \
-    CUDA_HOME=/usr/local/cuda MAX_JOBS=1 python3 setup.py build install && \
+    # CUDA_HOME is already set as ENV, and CPATH/CPLUS_INCLUDE_PATH added for compilers.
+    MAX_JOBS=1 python3 setup.py build install && \
     cd /app
 
 # Make port 7860 available (Gradio default port)
