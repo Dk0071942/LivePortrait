@@ -96,10 +96,13 @@ RUN mkdir -p ./pretrained_weights && \
 # Explicitly ensuring CUDA_HOME and other critical variables are passed to setup.py's environment.
 # Note: TORCH_CUDA_ARCH_LIST is already set as an ENV variable above.
 RUN cd src/utils/dependencies/XPose/models/UniPose/ops && \
+    echo "--- Attempting to build XPose UniPose ops with CUDA support (FORCE_CUDA=1) ---" && \
     CUDA_HOME=/usr/local/cuda \
     PATH=/usr/local/cuda/bin:$PATH \
     LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH \
-    MAX_JOBS=1 python3 setup.py build install && \
+    FORCE_CUDA=1 \
+    MAX_JOBS=1 python3 setup.py build_ext --verbose build install && \
+    echo "--- XPose UniPose ops build finished ---" && \
     cd /app
 
 # Make port 7860 available (Gradio default port)
