@@ -28,19 +28,16 @@ ENV PATH=${CUDA_HOME}/bin:$PATH
 ENV LD_LIBRARY_PATH=${CUDA_HOME}/lib64:$LD_LIBRARY_PATH
 
 # Explicitly set CPATH and CPLUS_INCLUDE_PATH for GCC/G++ to find CUDA headers
-# This helps compilers find headers even if PATH isn't fully propagated.
 ENV CPATH=${CUDA_HOME}/include:$CPATH
 ENV CPLUS_INCLUDE_PATH=${CUDA_HOME}/include:$CPLUS_INCLUDE_PATH
 
-# TORCH_CUDA_ARCH_LIST includes relevant architectures for modern NVIDIA GPUs (e.g., A100)
+# TORCH_CUDA_ARCH_LIST includes relevant architectures for modern NVIDIA GPUs
 ENV TORCH_CUDA_ARCH_LIST="6.0;6.1;7.0;7.5;8.0;8.6;8.9"
 
 # Install PyTorch, torchvision, and torchaudio for CUDA 11.8
 RUN pip3 install --no-cache-dir torch==2.3.1 torchvision==0.18.1 torchaudio==2.3.1 --index-url https://download.pytorch.org/whl/cu118
 
 # --- Python Diagnostic Script STARTS HERE ---
-# Add this section to check PyTorch's CUDA status during the build
-# Added 'export CUDA_HOME' for shell environment and print it for verification
 RUN echo "Running CUDA and PyTorch diagnostics..." && \
     nvcc --version && \
     export CUDA_HOME=/usr/local/cuda && \
@@ -83,7 +80,6 @@ COPY requirements_base.txt .
 # Install Python dependencies
 RUN if [ -f requirements_base.txt ]; then pip3 install --no-cache-dir -r requirements_base.txt; fi
 RUN pip3 install --no-cache-dir -r requirements.txt
-# Using onnxruntime-gpu 1.16.2, which is built for CUDA 11.x, should now work consistently.
 RUN pip3 install --no-cache-dir onnxruntime-gpu==1.16.2
 RUN pip3 install --no-cache-dir transformers==4.38.0
 RUN pip3 install --no-cache-dir git+https://github.com/XPixelGroup/BasicSR.git
@@ -97,9 +93,12 @@ RUN mkdir -p ./pretrained_weights && \
     huggingface-cli download KwaiVGI/LivePortrait --local-dir ./pretrained_weights --exclude "*.git*" "README.md" "docs" --local-dir-use-symlinks False
 
 # Build and install X-Pose dependency with proper GPU support (needed for Animals mode)
-# Explicitly ensuring CUDA_HOME is part of the environment for setup.py
+# Explicitly ensuring CUDA_HOME and other critical variables are passed to setup.py's environment.
+# Note: TORCH_CUDA_ARCH_LIST is already set as an ENV variable above.
 RUN cd src/utils/dependencies/XPose/models/UniPose/ops && \
-    export CUDA_HOME=/usr/local/cuda && \
+    CUDA_HOME=/usr/local/cuda \
+    PATH=/usr/local/cuda/bin:$PATH \
+    LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH \
     MAX_JOBS=1 python3 setup.py build install && \
     cd /app
 
