@@ -103,7 +103,10 @@ RUN cd src/utils/dependencies/XPose/models/UniPose/ops && \
     echo "--- Listing directory contents (ops): ---" && \
     ls -la && \
     echo "--- Environment check before nvcc: ---" && \
-    echo "--- PATH: $PATH" && \
+    echo "--- Initial PATH: $PATH" && \
+    PYTHON3_EXEC_PATH=$(which python3) && \
+    echo "--- Found python3 at: $PYTHON3_EXEC_PATH ---" && \
+    if [ -z "$PYTHON3_EXEC_PATH" ]; then echo "CRITICAL: python3 not found in PATH" >&2; exit 1; fi && \
     echo "--- LD_LIBRARY_PATH: $LD_LIBRARY_PATH" && \
     echo "--- CUDA_HOME: $CUDA_HOME" && \
     echo "--- TORCH_CUDA_ARCH_LIST: $TORCH_CUDA_ARCH_LIST" && \
@@ -116,13 +119,13 @@ RUN cd src/utils/dependencies/XPose/models/UniPose/ops && \
         exit 1; \
     fi && \
     echo "--- nvcc check PASSED. Attempting to build XPose UniPose ops with CUDA support (FORCE_CUDA=1) ---" && \
-    CUDA_HOME_BUILD=/usr/local/cuda \
-    PATH_BUILD=/usr/local/cuda/bin:$PATH \
-    LD_LIBRARY_PATH_BUILD=/usr/local/cuda/lib64:$LD_LIBRARY_PATH \
-    FORCE_CUDA_BUILD=1 \
-    MAX_JOBS_BUILD=1 \
-    env CUDA_HOME=${CUDA_HOME_BUILD} PATH=${PATH_BUILD} LD_LIBRARY_PATH=${LD_LIBRARY_PATH_BUILD} FORCE_CUDA=${FORCE_CUDA_BUILD} MAX_JOBS=${MAX_JOBS_BUILD} TORCH_CUDA_ARCH_LIST="${TORCH_CUDA_ARCH_LIST}" \
-    python3 setup.py build_ext --verbose build install && \
+    env CUDA_HOME=/usr/local/cuda \
+        PATH="/usr/local/cuda/bin:$PATH" \
+        LD_LIBRARY_PATH="/usr/local/cuda/lib64:$LD_LIBRARY_PATH" \
+        FORCE_CUDA=1 \
+        MAX_JOBS=1 \
+        TORCH_CUDA_ARCH_LIST="${TORCH_CUDA_ARCH_LIST}" \
+        "$PYTHON3_EXEC_PATH" setup.py build_ext --verbose build install && \
     echo "--- XPose UniPose ops build finished ---" && \
     cd /app
 
