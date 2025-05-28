@@ -1,5 +1,5 @@
-# Base image: Now explicitly using CUDA 12.9.0 with cuDNN devel
-FROM nvidia/cuda:12.9.0-cudnn-devel-ubuntu22.04
+# Base image: Reverting to CUDA 12.1.1 with cuDNN 8 (stable PyTorch support)
+FROM nvidia/cuda:12.1.1-cudnn8-devel-ubuntu22.04
 
 # Set DEBIAN_FRONTEND to noninteractive to avoid prompts during apt-get
 ENV DEBIAN_FRONTEND=noninteractive
@@ -33,12 +33,12 @@ ENV CPATH=${CUDA_HOME}/include:$CPATH
 ENV CPLUS_INCLUDE_PATH=${CUDA_HOME}/include:$CPLUS_INCLUDE_PATH
 
 # TORCH_CUDA_ARCH_LIST includes relevant architectures for modern NVIDIA GPUs (e.g., A100)
+# Ensure it covers your specific GPU if you have one.
 ENV TORCH_CUDA_ARCH_LIST="6.0;6.1;7.0;7.5;8.0;8.6;8.9;9.0"
 
-# Install PyTorch, torchvision, and torchaudio versions compatible with CUDA 12.9
-# Using --pre to get the latest nightly/development builds. This is the most flexible way
-# to get the bleeding-edge PyTorch for the very latest CUDA version.
-RUN pip3 install --no-cache-dir torch torchvision torchaudio --pre --index-url https://download.pytorch.org/whl/nightly/cu129
+# Install PyTorch, torchvision, and torchaudio for CUDA 12.1
+# These are stable, officially released versions for CUDA 12.1
+RUN pip3 install --no-cache-dir torch==2.3.1 torchvision==0.18.1 torchaudio==2.3.1 --index-url https://download.pytorch.org/whl/cu121
 
 # --- Python Diagnostic Script STARTS HERE ---
 # Add this section to check PyTorch's CUDA status during the build
@@ -84,9 +84,8 @@ RUN if [ -f requirements_base.txt ]; then pip3 install --no-cache-dir -r require
 # 2. Install from the main LivePortrait requirements.txt (as per readme)
 RUN pip3 install --no-cache-dir -r requirements.txt
 # 3. Install/Override specific packages as needed
-# Using onnxruntime-gpu 1.21.0. If you encounter cuDNN errors (like 'libcudnn.so.9 missing'),
-# you might need to downgrade this to 1.17.0, depending on your actual cuDNN version in the image.
-RUN pip3 install --no-cache-dir onnxruntime-gpu==1.21.0
+# Using onnxruntime-gpu 1.17.0 for better compatibility with cuDNN 8.x
+RUN pip3 install --no-cache-dir onnxruntime-gpu==1.17.0
 RUN pip3 install --no-cache-dir transformers==4.38.0    # Pinned version
 RUN pip3 install --no-cache-dir git+https://github.com/XPixelGroup/BasicSR.git
 RUN pip3 install --no-cache-dir git+https://github.com/xinntao/Real-ESRGAN.git
