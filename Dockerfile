@@ -1,5 +1,4 @@
 # Base image: Shifting to CUDA 11.8 with cuDNN 8 (very broad compatibility)
-# This addresses the libcublasLt.so.11 dependency.
 FROM nvidia/cuda:11.8.0-cudnn8-devel-ubuntu22.04
 
 # Set DEBIAN_FRONTEND to noninteractive to avoid prompts during apt-get
@@ -34,19 +33,20 @@ ENV CPATH=${CUDA_HOME}/include:$CPATH
 ENV CPLUS_INCLUDE_PATH=${CUDA_HOME}/include:$CPLUS_INCLUDE_PATH
 
 # TORCH_CUDA_ARCH_LIST includes relevant architectures for modern NVIDIA GPUs (e.g., A100)
-# Ensure it covers your specific GPU if you have one.
-# CUDA 11.8 supports up to compute capability 8.9 (NVIDIA H100)
 ENV TORCH_CUDA_ARCH_LIST="6.0;6.1;7.0;7.5;8.0;8.6;8.9"
 
 # Install PyTorch, torchvision, and torchaudio for CUDA 11.8
-# Use the official PyTorch installation command for cu118
 RUN pip3 install --no-cache-dir torch==2.3.1 torchvision==0.18.1 torchaudio==2.3.1 --index-url https://download.pytorch.org/whl/cu118
 
 # --- Python Diagnostic Script STARTS HERE ---
 # Add this section to check PyTorch's CUDA status during the build
+# Added 'export CUDA_HOME' for shell environment and print it for verification
 RUN echo "Running CUDA and PyTorch diagnostics..." && \
     nvcc --version && \
+    export CUDA_HOME=/usr/local/cuda && \
+    echo ">>>> CUDA_HOME from shell: $CUDA_HOME" && \
     python3 <<EOF_PYTHON_SCRIPT
+import os
 import torch
 print(f'>>>> PyTorch version: {torch.__version__}')
 _is_cuda_available = torch.cuda.is_available()
@@ -67,6 +67,7 @@ else:
         print(f'>>>> PyTorch compiled with CUDA version: {torch.version.cuda}')
     else:
         print('>>>> PyTorch CUDA version attribute not found or is None.')
+    print(f'>>>> os.environ.get("CUDA_HOME"): {os.environ.get("CUDA_HOME")}')
     if hasattr(torch.utils, 'cpp_extension') and torch.utils.cpp_extension is not None and hasattr(torch.utils.cpp_extension, 'CUDA_HOME') and torch.utils.cpp_extension.CUDA_HOME is not None:
         print(f'>>>> torch.utils.cpp_extension.CUDA_HOME: {torch.utils.cpp_extension.CUDA_HOME}')
     else:
@@ -76,20 +77,15 @@ EOF_PYTHON_SCRIPT
 # --- Python Diagnostic Script ENDS HERE ---
 
 # Copy the requirements files BEFORE trying to install them
-# (Ensure requirements.txt and requirements_base.txt are in the build context)
 COPY requirements.txt .
 COPY requirements_base.txt .
 
 # Install Python dependencies
-# 1. Install from your custom requirements_base.txt (if any)
 RUN if [ -f requirements_base.txt ]; then pip3 install --no-cache-dir -r requirements_base.txt; fi
-# 2. Install from the main LivePortrait requirements.txt (as per readme)
 RUN pip3 install --no-cache-dir -r requirements.txt
-# 3. Install/Override specific packages as needed
-# Using onnxruntime-gpu 1.16.2 or 1.17.0, which are built for CUDA 11.x, should now work.
-# Stick to a version that was definitely built for CUDA 11.x
+# Using onnxruntime-gpu 1.16.2, which is built for CUDA 11.x, should now work consistently.
 RUN pip3 install --no-cache-dir onnxruntime-gpu==1.16.2
-RUN pip3 install --no-cache-dir transformers==4.38.0    # Pinned version
+RUN pip3 install --no-cache-dir transformers==4.38.0
 RUN pip3 install --no-cache-dir git+https://github.com/XPixelGroup/BasicSR.git
 RUN pip3 install --no-cache-dir git+https://github.com/xinntao/Real-ESRGAN.git
 
@@ -97,15 +93,13 @@ RUN pip3 install --no-cache-dir git+https://github.com/xinntao/Real-ESRGAN.git
 COPY . .
 
 # Download pretrained weights from HuggingFace
-# Ensure the target directory exists
 RUN mkdir -p ./pretrained_weights && \
     huggingface-cli download KwaiVGI/LivePortrait --local-dir ./pretrained_weights --exclude "*.git*" "README.md" "docs" --local-dir-use-symlinks False
 
 # Build and install X-Pose dependency with proper GPU support (needed for Animals mode)
-# This path is from the original LivePortrait readme.md for building X-Pose op.
-# The environment variables set earlier (CUDA_HOME, CPATH etc.) should now correctly
-# enable compilation with CUDA support.
+# Explicitly ensuring CUDA_HOME is part of the environment for setup.py
 RUN cd src/utils/dependencies/XPose/models/UniPose/ops && \
+    export CUDA_HOME=/usr/local/cuda && \
     MAX_JOBS=1 python3 setup.py build install && \
     cd /app
 
