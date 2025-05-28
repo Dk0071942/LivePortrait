@@ -1,5 +1,6 @@
-# Base image: Aligning everything to CUDA 12.1.1 and cuDNN 8 (as PyTorch 2.3.1 uses cu121)
-FROM nvidia/cuda:12.1.1-cudnn8-devel-ubuntu22.04
+# Base image: Shifting to CUDA 11.8 with cuDNN 8 (very broad compatibility)
+# This addresses the libcublasLt.so.11 dependency.
+FROM nvidia/cuda:11.8.0-cudnn8-devel-ubuntu22.04
 
 # Set DEBIAN_FRONTEND to noninteractive to avoid prompts during apt-get
 ENV DEBIAN_FRONTEND=noninteractive
@@ -33,12 +34,13 @@ ENV CPATH=${CUDA_HOME}/include:$CPATH
 ENV CPLUS_INCLUDE_PATH=${CUDA_HOME}/include:$CPLUS_INCLUDE_PATH
 
 # TORCH_CUDA_ARCH_LIST includes relevant architectures for modern NVIDIA GPUs (e.g., A100)
-# Make sure this range covers your host GPU architecture.
-ENV TORCH_CUDA_ARCH_LIST="6.0;6.1;7.0;7.5;8.0;8.6;8.9;9.0"
+# Ensure it covers your specific GPU if you have one.
+# CUDA 11.8 supports up to compute capability 8.9 (NVIDIA H100)
+ENV TORCH_CUDA_ARCH_LIST="6.0;6.1;7.0;7.5;8.0;8.6;8.9"
 
-# Install PyTorch, torchvision, and torchaudio for CUDA 12.1
-# These are stable, officially released versions for CUDA 12.1 and match the base image.
-RUN pip3 install --no-cache-dir torch==2.3.1 torchvision==0.18.1 torchaudio==2.3.1 --index-url https://download.pytorch.org/whl/cu121
+# Install PyTorch, torchvision, and torchaudio for CUDA 11.8
+# Use the official PyTorch installation command for cu118
+RUN pip3 install --no-cache-dir torch==2.3.1 torchvision==0.18.1 torchaudio==2.3.1 --index-url https://download.pytorch.org/whl/cu118
 
 # --- Python Diagnostic Script STARTS HERE ---
 # Add this section to check PyTorch's CUDA status during the build
@@ -84,10 +86,8 @@ RUN if [ -f requirements_base.txt ]; then pip3 install --no-cache-dir -r require
 # 2. Install from the main LivePortrait requirements.txt (as per readme)
 RUN pip3 install --no-cache-dir -r requirements.txt
 # 3. Install/Override specific packages as needed
-# Using onnxruntime-gpu 1.17.0, which is known to be compatible with CUDA 11.x / cuDNN 8.x
-# The 'libcublasLt.so.11' error strongly suggests an ONNX Runtime build
-# that expects CUDA 11.x libraries, despite CUDA 12.x being present.
-# Version 1.17.0 should fix this.
+# Using onnxruntime-gpu 1.16.2 or 1.17.0, which are built for CUDA 11.x, should now work.
+# Stick to a version that was definitely built for CUDA 11.x
 RUN pip3 install --no-cache-dir onnxruntime-gpu==1.16.2
 RUN pip3 install --no-cache-dir transformers==4.38.0    # Pinned version
 RUN pip3 install --no-cache-dir git+https://github.com/XPixelGroup/BasicSR.git
