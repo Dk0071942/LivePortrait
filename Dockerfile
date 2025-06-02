@@ -129,8 +129,8 @@ RUN cd src/utils/dependencies/XPose/models/UniPose/ops && \
     echo "--- XPose UniPose ops build finished ---" && \
     cd /app
 
-# Make port 7860 available (Gradio default port)
-EXPOSE 7860
+# Make port 8890 available (Gradio default port)
+EXPOSE 8890
 
 # Set environment variable for Gradio server
 ENV GRADIO_SERVER_NAME="0.0.0.0"
