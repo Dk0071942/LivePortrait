@@ -97,6 +97,10 @@ COPY . .
 RUN mkdir -p ./pretrained_weights && \
     huggingface-cli download KwaiVGI/LivePortrait --local-dir ./pretrained_weights --exclude "*.git*" "README.md" "docs" --local-dir-use-symlinks False
 
+# Download the RealESRGAN model for upscaling
+RUN mkdir -p ./src/utils/upscale_models && \
+    wget https://github.com/xinntao/Real-ESRGAN/releases/download/v0.1.0/RealESRGAN_x4plus.pth -O ./src/utils/upscale_models/RealESRGAN_x4plus.pth
+
 # Build and install X-Pose dependency with proper GPU support (needed for Animals mode)
 RUN cd src/utils/dependencies/XPose/models/UniPose/ops && \
     echo "--- Current directory: $(pwd) ---" && \
