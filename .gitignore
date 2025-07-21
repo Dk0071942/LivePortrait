@@ -36,3 +36,4 @@ src/utils/dependencies/XPose/models/UniPose/ops/MultiScaleDeformableAttention.eg
 # custom assets
 assets/examples/source/
 assets/examples/driving/
+assets/gopet
