@@ -610,26 +610,27 @@ class GradioPipeline(LivePortraitPipeline):
         # source frame | generation
         frames_concatenated = concat_frames(driving_image_lst=None, source_image_lst=img_crop_256x256_lst, I_p_lst=I_p_lst)
         wfp_concat = osp.join(self.args.output_dir, f'{basename(input_video)}_retargeting_concat.mp4')
-        images2video(frames_concatenated, wfp=wfp_concat, fps=source_fps)
+        inference_cfg = self.live_portrait_wrapper.inference_cfg
+        images2video(frames_concatenated, wfp=wfp_concat, fps=source_fps, ffmpeg_config=inference_cfg.ffmpeg_config)
 
         if flag_source_has_audio:
             # final result with concatenation
             wfp_concat_with_audio = osp.join(self.args.output_dir, f'{basename(input_video)}_retargeting_concat_with_audio.mp4')
-            add_audio_to_video(wfp_concat, input_video, wfp_concat_with_audio)
+            add_audio_to_video(wfp_concat, input_video, wfp_concat_with_audio, ffmpeg_config=inference_cfg.ffmpeg_config)
             os.replace(wfp_concat_with_audio, wfp_concat)
             log(f"Replace {wfp_concat_with_audio} with {wfp_concat}")
 
         # save the animated result
         wfp = osp.join(self.args.output_dir, f'{basename(input_video)}_retargeting.mp4')
         if I_p_pstbk_lst is not None and len(I_p_pstbk_lst) > 0:
-            images2video(I_p_pstbk_lst, wfp=wfp, fps=source_fps)
+            images2video(I_p_pstbk_lst, wfp=wfp, fps=source_fps, ffmpeg_config=inference_cfg.ffmpeg_config)
         else:
-            images2video(I_p_lst, wfp=wfp, fps=source_fps)
+            images2video(I_p_lst, wfp=wfp, fps=source_fps, ffmpeg_config=inference_cfg.ffmpeg_config)
 
         ######### build the final result #########
         if flag_source_has_audio:
             wfp_with_audio = osp.join(self.args.output_dir, f'{basename(input_video)}_retargeting_with_audio.mp4')
-            add_audio_to_video(wfp, input_video, wfp_with_audio)
+            add_audio_to_video(wfp, input_video, wfp_with_audio, ffmpeg_config=inference_cfg.ffmpeg_config)
             os.replace(wfp_with_audio, wfp)
             log(f"Replace {wfp_with_audio} with {wfp}")
         gr.Info("Run successfully!", duration=2)

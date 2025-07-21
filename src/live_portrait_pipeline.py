@@ -471,30 +471,30 @@ class LivePortraitPipeline(object):
 
             # NOTE: update output fps
             output_fps = source_fps if flag_is_source_video else output_fps
-            images2video(frames_concatenated, wfp=wfp_concat, fps=output_fps)
+            images2video(frames_concatenated, wfp=wfp_concat, fps=output_fps, ffmpeg_config=inf_cfg.ffmpeg_config)
 
             if flag_source_has_audio or flag_driving_has_audio:
                 # final result with concatenation
                 wfp_concat_with_audio = osp.join(args.output_dir, f'{basename(args.source)}--{basename(args.driving)}_concat_with_audio.mp4')
                 audio_from_which_video = args.driving if ((flag_driving_has_audio and args.audio_priority == 'driving') or (not flag_source_has_audio)) else args.source
                 log(f"Audio is selected from {audio_from_which_video}, concat mode")
-                add_audio_to_video(wfp_concat, audio_from_which_video, wfp_concat_with_audio)
+                add_audio_to_video(wfp_concat, audio_from_which_video, wfp_concat_with_audio, ffmpeg_config=inf_cfg.ffmpeg_config)
                 os.replace(wfp_concat_with_audio, wfp_concat)
                 log(f"Replace {wfp_concat_with_audio} with {wfp_concat}")
 
             # save the animated result
             wfp = osp.join(args.output_dir, f'{basename(args.source)}--{basename(args.driving)}.mp4')
             if I_p_pstbk_lst is not None and len(I_p_pstbk_lst) > 0:
-                images2video(I_p_pstbk_lst, wfp=wfp, fps=output_fps)
+                images2video(I_p_pstbk_lst, wfp=wfp, fps=output_fps, ffmpeg_config=inf_cfg.ffmpeg_config)
             else:
-                images2video(I_p_lst, wfp=wfp, fps=output_fps)
+                images2video(I_p_lst, wfp=wfp, fps=output_fps, ffmpeg_config=inf_cfg.ffmpeg_config)
 
             ######### build the final result #########
             if flag_source_has_audio or flag_driving_has_audio:
                 wfp_with_audio = osp.join(args.output_dir, f'{basename(args.source)}--{basename(args.driving)}_with_audio.mp4')
                 audio_from_which_video = args.driving if ((flag_driving_has_audio and args.audio_priority == 'driving') or (not flag_source_has_audio)) else args.source
                 log(f"Audio is selected from {audio_from_which_video}")
-                add_audio_to_video(wfp, audio_from_which_video, wfp_with_audio)
+                add_audio_to_video(wfp, audio_from_which_video, wfp_with_audio, ffmpeg_config=inf_cfg.ffmpeg_config)
                 os.replace(wfp_with_audio, wfp)
                 log(f"Replace {wfp_with_audio} with {wfp}")
 

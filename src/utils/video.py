@@ -16,6 +16,7 @@ from rich.progress import track
 from .rprint import rlog as log
 from .rprint import rprint as print
 from .helper import prefix
+from ..config.ffmpeg_config import FFmpegConfig, default_ffmpeg_config
 
 
 def exec_cmd(cmd):
@@ -23,14 +24,34 @@ def exec_cmd(cmd):
 
 
 def images2video(images, wfp, **kwargs):
-    fps = kwargs.get('fps', 30)
+    # Get FFmpeg config - either passed in or use default
+    ffmpeg_config = kwargs.get('ffmpeg_config', default_ffmpeg_config)
+    
+    # Use FFmpeg config values as defaults, but allow overrides
+    fps = kwargs.get('fps', ffmpeg_config.default_fps)
     video_format = kwargs.get('format', 'mp4')  # default is mp4 format
-    codec = kwargs.get('codec', 'libx264')  # default is libx264 encoding
+    codec = kwargs.get('codec', ffmpeg_config.video_codec)
     quality = kwargs.get('quality')  # video quality
-    pixelformat = kwargs.get('pixelformat', 'yuv420p')  # video pixel format
+    pixelformat = kwargs.get('pixelformat', ffmpeg_config.pix_fmt)
     image_mode = kwargs.get('image_mode', 'rgb')
-    macro_block_size = kwargs.get('macro_block_size', 2)
-    ffmpeg_params = ['-crf', str(kwargs.get('crf', 18))]
+    macro_block_size = kwargs.get('macro_block_size', ffmpeg_config.macro_block_size)
+    
+    # Build ffmpeg_params from config
+    ffmpeg_params = []
+    ffmpeg_params.extend(['-crf', str(kwargs.get('crf', ffmpeg_config.crf))])
+    ffmpeg_params.extend(['-preset', ffmpeg_config.preset])
+    ffmpeg_params.extend(['-movflags', ffmpeg_config.movflags])
+    ffmpeg_params.extend(['-profile:v', ffmpeg_config.profile])
+    ffmpeg_params.extend(['-level', ffmpeg_config.level])
+    
+    # Add color space parameters
+    ffmpeg_params.extend(['-color_primaries', ffmpeg_config.color_primaries])
+    ffmpeg_params.extend(['-color_trc', ffmpeg_config.color_trc])
+    ffmpeg_params.extend(['-colorspace', ffmpeg_config.color_space])
+    
+    # Add any custom parameters
+    if ffmpeg_config.additional_params:
+        ffmpeg_params.extend(ffmpeg_config.additional_params)
 
     writer = imageio.get_writer(
         wfp, fps=fps, format=video_format,
@@ -47,7 +68,10 @@ def images2video(images, wfp, **kwargs):
     writer.close()
 
 
-def video2gif(video_fp, fps=30, size=256):
+def video2gif(video_fp, fps=30, size=256, ffmpeg_config=None):
+    if ffmpeg_config is None:
+        ffmpeg_config = default_ffmpeg_config
+        
     if osp.exists(video_fp):
         d = osp.split(video_fp)[0]
         fn = prefix(osp.basename(video_fp))
@@ -64,9 +88,12 @@ def video2gif(video_fp, fps=30, size=256):
         raise FileNotFoundError(f"video_fp: {video_fp} not exists!")
 
 
-def merge_audio_video(video_fp, audio_fp, wfp):
+def merge_audio_video(video_fp, audio_fp, wfp, ffmpeg_config=None):
+    if ffmpeg_config is None:
+        ffmpeg_config = default_ffmpeg_config
+        
     if osp.exists(video_fp) and osp.exists(audio_fp):
-        cmd = f'ffmpeg -i "{video_fp}" -i "{audio_fp}" -c:v copy -c:a aac "{wfp}" -y'
+        cmd = f'ffmpeg -i "{video_fp}" -i "{audio_fp}" -c:v copy -c:a {ffmpeg_config.audio_codec} -b:a {ffmpeg_config.audio_bitrate} "{wfp}" -y'
         exec_cmd(cmd)
         print(f'merge {video_fp} and {audio_fp} to {wfp}')
     else:
@@ -104,19 +131,38 @@ def concat_frames(driving_image_lst, source_image_lst, I_p_lst):
 
 class VideoWriter:
     def __init__(self, **kwargs):
-        self.fps = kwargs.get('fps', 30)
+        # Get FFmpeg config - either passed in or use default
+        self.ffmpeg_config = kwargs.get('ffmpeg_config', default_ffmpeg_config)
+        
+        self.fps = kwargs.get('fps', self.ffmpeg_config.default_fps)
         self.wfp = kwargs.get('wfp', 'video.mp4')
         self.video_format = kwargs.get('format', 'mp4')
-        self.codec = kwargs.get('codec', 'libx264')
+        self.codec = kwargs.get('codec', self.ffmpeg_config.video_codec)
         self.quality = kwargs.get('quality')
-        self.pixelformat = kwargs.get('pixelformat', 'yuv420p')
+        self.pixelformat = kwargs.get('pixelformat', self.ffmpeg_config.pix_fmt)
         self.image_mode = kwargs.get('image_mode', 'rgb')
-        self.ffmpeg_params = kwargs.get('ffmpeg_params')
+        self.macro_block_size = kwargs.get('macro_block_size', self.ffmpeg_config.macro_block_size)
+        
+        # Build ffmpeg_params from config if not provided
+        if 'ffmpeg_params' in kwargs:
+            self.ffmpeg_params = kwargs['ffmpeg_params']
+        else:
+            self.ffmpeg_params = []
+            self.ffmpeg_params.extend(['-crf', str(kwargs.get('crf', self.ffmpeg_config.crf))])
+            self.ffmpeg_params.extend(['-preset', self.ffmpeg_config.preset])
+            self.ffmpeg_params.extend(['-movflags', self.ffmpeg_config.movflags])
+            self.ffmpeg_params.extend(['-profile:v', self.ffmpeg_config.profile])
+            self.ffmpeg_params.extend(['-level', self.ffmpeg_config.level])
+            # Add color space parameters
+            self.ffmpeg_params.extend(['-color_primaries', self.ffmpeg_config.color_primaries])
+            self.ffmpeg_params.extend(['-color_trc', self.ffmpeg_config.color_trc])
+            self.ffmpeg_params.extend(['-colorspace', self.ffmpeg_config.color_space])
 
         self.writer = imageio.get_writer(
             self.wfp, fps=self.fps, format=self.video_format,
             codec=self.codec, quality=self.quality,
-            ffmpeg_params=self.ffmpeg_params, pixelformat=self.pixelformat
+            ffmpeg_params=self.ffmpeg_params, pixelformat=self.pixelformat,
+            macro_block_size=self.macro_block_size
         )
 
     def write(self, image):
@@ -130,8 +176,34 @@ class VideoWriter:
             self.writer.close()
 
 
-def change_video_fps(input_file, output_file, fps=20, codec='libx264', crf=12):
-    cmd = f'ffmpeg -i "{input_file}" -c:v {codec} -crf {crf} -r {fps} "{output_file}" -y'
+def change_video_fps(input_file, output_file, fps=20, codec=None, crf=None, ffmpeg_config=None):
+    if ffmpeg_config is None:
+        ffmpeg_config = default_ffmpeg_config
+    
+    # Use config values as defaults
+    if codec is None:
+        codec = ffmpeg_config.video_codec
+    if crf is None:
+        crf = ffmpeg_config.crf
+    
+    # Build command with all encoding parameters from config
+    cmd_parts = [
+        'ffmpeg', '-i', f'"{input_file}"',
+        '-c:v', codec,
+        '-crf', str(crf),
+        '-preset', ffmpeg_config.preset,
+        '-r', str(fps),
+        '-pix_fmt', ffmpeg_config.pix_fmt,
+        '-movflags', ffmpeg_config.movflags,
+        '-profile:v', ffmpeg_config.profile,
+        '-level', ffmpeg_config.level,
+        '-color_primaries', ffmpeg_config.color_primaries,
+        '-color_trc', ffmpeg_config.color_trc,
+        '-colorspace', ffmpeg_config.color_space,
+        f'"{output_file}"', '-y'
+    ]
+    
+    cmd = ' '.join(cmd_parts)
     exec_cmd(cmd)
 
 
@@ -186,7 +258,10 @@ def has_audio_stream(video_path: str) -> bool:
     return False
 
 
-def add_audio_to_video(silent_video_path: str, audio_video_path: str, output_video_path: str):
+def add_audio_to_video(silent_video_path: str, audio_video_path: str, output_video_path: str, ffmpeg_config=None):
+    if ffmpeg_config is None:
+        ffmpeg_config = default_ffmpeg_config
+        
     cmd = [
         'ffmpeg',
         '-y',
@@ -195,6 +270,8 @@ def add_audio_to_video(silent_video_path: str, audio_video_path: str, output_vid
         '-map', '0:v',
         '-map', '1:a',
         '-c:v', 'copy',
+        '-c:a', ffmpeg_config.audio_codec,
+        '-b:a', ffmpeg_config.audio_bitrate,
         '-shortest',
         f'"{output_video_path}"'
     ]

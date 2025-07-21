@@ -10,6 +10,7 @@ import pickle as pkl
 from dataclasses import dataclass, field
 from typing import Literal, Tuple
 from .base_config import PrintableConfig, make_abs_path
+from .ffmpeg_config import FFmpegConfig, default_ffmpeg_config
 
 def load_lip_array():
     with open(make_abs_path('../utils/resources/lip_array.pkl'), 'rb') as f:
@@ -63,8 +64,16 @@ class InferenceConfig(PrintableConfig):
 
     input_shape: Tuple[int, int] = (256, 256)  # input shape
     output_format: Literal['mp4', 'gif'] = 'mp4'  # output video format
-    crf: int = 15  # crf for output video
-    output_fps: int = 25 # default output fps
+    output_fps: int = 30 # default output fps, updated to match FFmpeg default
+    
+    # FFmpeg configuration
+    ffmpeg_config: FFmpegConfig = field(default_factory=lambda: FFmpegConfig())
+    
+    # Legacy properties for backward compatibility
+    @property
+    def crf(self) -> int:
+        """Get CRF from FFmpeg config for backward compatibility."""
+        return self.ffmpeg_config.crf
 
     mask_crop: ndarray = field(default_factory=lambda: cv2.imread(make_abs_path('../utils/resources/mask_template.png'), cv2.IMREAD_COLOR))
     lip_array: ndarray = field(default_factory=load_lip_array)

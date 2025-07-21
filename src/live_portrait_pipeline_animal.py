@@ -223,28 +223,28 @@ class LivePortraitPipelineAnimal(object):
         # driving frame | source image | generation
         frames_concatenated = concat_frames(driving_rgb_crop_256x256_lst, [img_crop_256x256], I_p_lst)
         wfp_concat = osp.join(args.output_dir, f'{basename(args.source)}--{basename(args.driving)}_concat.mp4')
-        images2video(frames_concatenated, wfp=wfp_concat, fps=output_fps)
+        images2video(frames_concatenated, wfp=wfp_concat, fps=output_fps, ffmpeg_config=self.inference_cfg.ffmpeg_config)
 
         if flag_driving_has_audio:
             # final result with concatenation
             wfp_concat_with_audio = osp.join(args.output_dir, f'{basename(args.source)}--{basename(args.driving)}_concat_with_audio.mp4')
             audio_from_which_video = args.driving
-            add_audio_to_video(wfp_concat, audio_from_which_video, wfp_concat_with_audio)
+            add_audio_to_video(wfp_concat, audio_from_which_video, wfp_concat_with_audio, ffmpeg_config=self.inference_cfg.ffmpeg_config)
             os.replace(wfp_concat_with_audio, wfp_concat)
             log(f"Replace {wfp_concat_with_audio} with {wfp_concat}")
 
         # save the animated result
         wfp = osp.join(args.output_dir, f'{basename(args.source)}--{basename(args.driving)}.mp4')
         if I_p_pstbk_lst is not None and len(I_p_pstbk_lst) > 0:
-            images2video(I_p_pstbk_lst, wfp=wfp, fps=output_fps)
+            images2video(I_p_pstbk_lst, wfp=wfp, fps=output_fps, ffmpeg_config=self.inference_cfg.ffmpeg_config)
         else:
-            images2video(I_p_lst, wfp=wfp, fps=output_fps)
+            images2video(I_p_lst, wfp=wfp, fps=output_fps, ffmpeg_config=self.inference_cfg.ffmpeg_config)
 
         ######### build the final result #########
         if flag_driving_has_audio:
             wfp_with_audio = osp.join(args.output_dir, f'{basename(args.source)}--{basename(args.driving)}_with_audio.mp4')
             audio_from_which_video = args.driving
-            add_audio_to_video(wfp, audio_from_which_video, wfp_with_audio)
+            add_audio_to_video(wfp, audio_from_which_video, wfp_with_audio, ffmpeg_config=self.inference_cfg.ffmpeg_config)
             os.replace(wfp_with_audio, wfp)
             log(f"Replace {wfp_with_audio} with {wfp}")
 
@@ -255,7 +255,7 @@ class LivePortraitPipelineAnimal(object):
         log(f'Animated video with concat: {wfp_concat}')
 
         # build the gif
-        wfp_gif = video2gif(wfp)
+        wfp_gif = video2gif(wfp, ffmpeg_config=self.inference_cfg.ffmpeg_config)
         log(f'Animated gif: {wfp_gif}')
 
         print(f"[DEBUG live_portrait_pipeline_animal.py execute] Before actual upscaling block: self.enh_cfg.flag_enhance is: {self.enh_cfg.flag_enhance}")
