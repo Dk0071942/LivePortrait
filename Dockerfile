@@ -140,4 +140,5 @@ EXPOSE 8890
 ENV GRADIO_SERVER_NAME="0.0.0.0"
 
 # Define the command to run the application (Animals mode app)
-CMD ["python3", "app_animals.py"]
+# Explicitly set server-name to 0.0.0.0 to accept connections from any interface
+CMD ["python3", "app_animals.py", "--server-name", "0.0.0.0"]
