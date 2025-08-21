@@ -1,5 +1,5 @@
-# Base image: Shifting to CUDA 11.8 with cuDNN 8 (very broad compatibility)
-FROM nvidia/cuda:11.8.0-cudnn8-devel-ubuntu22.04
+# Base image: CUDA 12.2 with cuDNN 9 to match host system
+FROM nvidia/cuda:12.2-cudnn9-devel-ubuntu22.04
 
 # Set DEBIAN_FRONTEND to noninteractive to avoid prompts during apt-get
 ENV DEBIAN_FRONTEND=noninteractive
@@ -32,10 +32,10 @@ ENV CPATH=${CUDA_HOME}/include:$CPATH
 ENV CPLUS_INCLUDE_PATH=${CUDA_HOME}/include:$CPLUS_INCLUDE_PATH
 
 # TORCH_CUDA_ARCH_LIST includes relevant architectures for modern NVIDIA GPUs
-ENV TORCH_CUDA_ARCH_LIST="6.0;6.1;7.0;7.5;8.0;8.6;8.9"
+ENV TORCH_CUDA_ARCH_LIST="7.0;7.5;8.0;8.6;8.9;9.0"
 
-# Install PyTorch, torchvision, and torchaudio for CUDA 11.8
-RUN pip3 install --no-cache-dir torch==2.3.1 torchvision==0.18.1 torchaudio==2.3.1 --index-url https://download.pytorch.org/whl/cu118
+# Install PyTorch, torchvision, and torchaudio for CUDA 12.1
+RUN pip3 install --no-cache-dir torch==2.3.1 torchvision==0.18.1 torchaudio==2.3.1 --index-url https://download.pytorch.org/whl/cu121
 
 # --- Python Diagnostic Script STARTS HERE ---
 # To ensure this runs and isn't cached from a potentially different context,
