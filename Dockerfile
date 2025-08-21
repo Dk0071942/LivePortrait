@@ -1,5 +1,5 @@
-# Base image: CUDA 12.2 with cuDNN 9 to match host system
-FROM nvidia/cuda:12.2-cudnn9-devel-ubuntu22.04
+# Base image: CUDA 12.2.2 with cuDNN 8 for better PyTorch compatibility
+FROM nvidia/cuda:12.2.2-cudnn8-devel-ubuntu22.04
 
 # Set DEBIAN_FRONTEND to noninteractive to avoid prompts during apt-get
 ENV DEBIAN_FRONTEND=noninteractive
