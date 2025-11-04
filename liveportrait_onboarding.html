@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>LivePortrait Onboarding Guide</title>
+<style>
+    :root {
+        color-scheme: light;
+        --bg: #f6f7fb;
+        --card-bg: #ffffff;
+        --accent: #3b82f6;
+        --accent-soft: rgba(59, 130, 246, 0.12);
+        --text: #1f2937;
+        --muted: #4b5563;
+        --border: #e5e7eb;
+    }
+    * {
+        box-sizing: border-box;
+    }
+    body {
+        margin: 0;
+        padding: 0;
+        font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.6;
+    }
+    a {
+        color: var(--accent);
+        text-decoration: none;
+    }
+    a:hover {
+        text-decoration: underline;
+    }
+    .wrap {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 40px 24px 64px;
+    }
+    header.hero {
+        background: linear-gradient(135deg, #1d4ed8, #3b82f6);
+        color: #ffffff;
+        border-radius: 18px;
+        padding: 40px;
+        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.25);
+    }
+    header.hero h1 {
+        margin: 0;
+        font-size: 34px;
+        letter-spacing: 0.3px;
+    }
+    header.hero p {
+        margin: 14px 0 0;
+        font-size: 18px;
+        max-width: 700px;
+    }
+    .pill {
+        display: inline-block;
+        background: rgba(255, 255, 255, 0.18);
+        border-radius: 999px;
+        padding: 6px 14px;
+        font-size: 13px;
+        letter-spacing: 0.6px;
+        text-transform: uppercase;
+    }
+    nav.quick-nav {
+        margin: 28px 0 40px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+    nav.quick-nav a {
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 10px 16px;
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--muted);
+        transition: all 0.2s ease;
+    }
+    nav.quick-nav a:hover {
+        color: var(--accent);
+        border-color: var(--accent);
+        box-shadow: 0 6px 14px rgba(37, 99, 235, 0.12);
+    }
+    section {
+        margin-top: 48px;
+    }
+    section h2 {
+        margin: 0 0 16px;
+        font-size: 26px;
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+    }
+    section h2 span {
+        font-size: 14px;
+        color: var(--muted);
+        font-weight: 500;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+    }
+    p.lead {
+        color: var(--muted);
+        margin: 0 0 20px;
+        max-width: 780px;
+    }
+    .grid {
+        display: grid;
+        gap: 18px;
+    }
+    .grid.columns-2 {
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    }
+    .grid.columns-3 {
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
+    .card {
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 20px;
+        box-shadow: 0 10px 26px rgba(15, 23, 42, 0.12);
+    }
+    .card h3 {
+        margin-top: 0;
+        font-size: 18px;
+    }
+    .card ul {
+        padding-left: 20px;
+        margin: 12px 0 0;
+    }
+    .card ul li {
+        margin-bottom: 6px;
+    }
+    ol, ul {
+        margin: 0 0 12px;
+        padding-left: 22px;
+    }
+    pre {
+        background: #0f172a;
+        color: #e2e8f0;
+        padding: 18px;
+        border-radius: 12px;
+        overflow-x: auto;
+        font-size: 13px;
+        line-height: 1.5;
+    }
+    code {
+        background: var(--accent-soft);
+        padding: 2px 5px;
+        border-radius: 6px;
+        font-size: 13px;
+    }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        background: var(--card-bg);
+        border-radius: 14px;
+        overflow: hidden;
+        border: 1px solid var(--border);
+        box-shadow: 0 12px 26px rgba(15, 23, 42, 0.1);
+    }
+    th, td {
+        padding: 12px 16px;
+        text-align: left;
+        border-bottom: 1px solid var(--border);
+    }
+    th {
+        background: rgba(59, 130, 246, 0.08);
+        font-weight: 600;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        font-size: 13px;
+    }
+    tr:last-child td {
+        border-bottom: none;
+    }
+    footer {
+        margin-top: 60px;
+        color: var(--muted);
+        font-size: 14px;
+        text-align: center;
+    }
+    @media (max-width: 720px) {
+        header.hero {
+            padding: 28px;
+        }
+        header.hero h1 {
+            font-size: 28px;
+        }
+        nav.quick-nav {
+            flex-direction: column;
+        }
+    }
+</style>
+</head>
+<body>
+    <div class="wrap">
+        <header class="hero">
+            <div class="pill">Welcome Aboard</div>
+            <h1>LivePortrait Onboarding Guide</h1>
+            <p>Everything you need to ramp up on LivePortrait quickly: what the system does, how the pipeline is built, where the moving parts live, and how to start contributing effectively.</p>
+        </header>
+
+        <nav class="quick-nav">
+            <a href="#snapshot">Project Snapshot</a>
+            <a href="#quickstart">Quick Start</a>
+            <a href="#pipeline">Architecture</a>
+            <a href="#components">Core Components</a>
+            <a href="#modules">Neural Modules</a>
+            <a href="#structure">Project Structure</a>
+            <a href="#workflow">Data Flow</a>
+            <a href="#references">Helpful References</a>
+        </nav>
+
+        <section id="snapshot">
+            <h2>Project Snapshot <span>What LivePortrait Delivers</span></h2>
+            <p class="lead">LivePortrait animates a source portrait using the motion of a driving video, with controls for eye and lip retargeting, stitching, and privacy-preserving motion templates.</p>
+            <div class="grid columns-3">
+                <div class="card">
+                    <h3>Key Features</h3>
+                    <ul>
+                        <li>Real-time portrait animation with human and animal modes.</li>
+                        <li>Stitching and retargeting controls for precise eye and lip motion.</li>
+                        <li>Supports still images, videos, and reusable motion templates.</li>
+                        <li>Cross-platform: Linux, Windows, macOS (partial).</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3>Novelty</h3>
+                    <ul>
+                        <li>Efficient motion template system for fast inference.</li>
+                        <li>SPADE-based generator for high-quality frame synthesis.</li>
+                        <li>Stitching network that preserves natural boundaries.</li>
+                        <li>Fine-grained retargeting for lip-sync and gaze control.</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3>Performance (RTX 4090)</h3>
+                    <ul>
+                        <li>Face detection: 15-20 ms.</li>
+                        <li>Feature extraction: 8-12 ms.</li>
+                        <li>Motion transfer: 20-30 ms.</li>
+                        <li>Total pipeline: 68-97 ms (10-15 FPS).</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section id="quickstart">
+            <h2>Quick Start <span>Environment & First Run</span></h2>
+            <div class="grid columns-2">
+                <div class="card">
+                    <h3>Environment Setup</h3>
+                    <ol>
+                        <li>Clone the repo: <code>git clone https://github.com/KwaiVGI/LivePortrait</code></li>
+                        <li>Create env: <code>conda create -n LivePortrait python=3.10</code></li>
+                        <li>Install deps: <code>pip install -r requirements.txt</code></li>
+                        <li>Download weights into <code>pretrained_weights/</code>.</li>
+                    </ol>
+                </div>
+                <div class="card">
+                    <h3>Entry Points</h3>
+                    <ul>
+                        <li><code>app.py</code>: Gradio UI (human).</li>
+                        <li><code>app_animals.py</code>: Gradio UI (animals).</li>
+                        <li><code>inference.py</code>: CLI batch processing.</li>
+                        <li><code>speed.py</code>: Performance benchmarking.</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section id="pipeline">
+            <h2>Architecture <span>System Layers & Pipeline</span></h2>
+            <p class="lead">The pipeline orchestrates motion transfer by coordinating UI entry points, preprocessing utilities, and neural modules.</p>
+            <pre>
+User Interfaces (Gradio UI, CLI)
+        │
+Pipeline Layer (LivePortraitPipeline, AnimalPipeline, GradioPipeline)
+        │
+Core Components (LivePortraitWrapper, Cropper, Motion Templates)
+        │
+Neural Modules (F: Feature, M: Motion, W: Warping, G: SPADE, S&R: Stitching)
+        │
+Synthesized Frames -> Post-processing -> Outputs
+            </pre>
+            <div class="card">
+                <h3>Processing Phases</h3>
+                <ol>
+                    <li><strong>Input Processing:</strong> validation, face detection, cropping.</li>
+                    <li><strong>Feature Extraction:</strong> appearance and motion embeddings, keypoints, rotations.</li>
+                    <li><strong>Motion Processing:</strong> template creation, retargeting ratios, motion smoothing.</li>
+                    <li><strong>Animation Loop:</strong> transform keypoints, generate dense motion, synthesize frames, apply stitching.</li>
+                    <li><strong>Post-processing:</strong> paste-back, temporal smoothing, audio muxing.</li>
+                </ol>
+            </div>
+        </section>
+
+        <section id="components">
+            <h2>Core Components <span>Where to Look First</span></h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Component</th>
+                        <th>Location</th>
+                        <th>Highlights</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>LivePortraitPipeline</td>
+                        <td><code>src/live_portrait_pipeline.py</code></td>
+                        <td>Primary orchestrator: executes pipeline, builds motion templates, prepares video assets.</td>
+                    </tr>
+                    <tr>
+                        <td>LivePortraitWrapper</td>
+                        <td><code>src/live_portrait_wrapper.py</code></td>
+                        <td>Neural inference entry point: feature extraction, keypoint transformation, stitching hook.</td>
+                    </tr>
+                    <tr>
+                        <td>Cropper</td>
+                        <td><code>src/utils/cropper.py</code></td>
+                        <td>InsightFace-based detection, landmark extraction, aligned crops for driving/source media.</td>
+                    </tr>
+                    <tr>
+                        <td>GradioPipeline</td>
+                        <td><code>src/gradio_pipeline.py</code></td>
+                        <td>Wraps pipeline with UI-specific logic for previews, controls, and error handling.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section id="modules">
+            <h2>Neural Modules <span>Model Building Blocks</span></h2>
+            <div class="grid columns-2">
+                <div class="card">
+                    <h3>Module Summary</h3>
+                    <ul>
+                        <li><strong>F - Appearance Feature Extractor:</strong> ResNet backbone, multi-scale, 3D features.</li>
+                        <li><strong>M - Motion Extractor:</strong> ConvNeXtV2 base, keypoint and expression outputs.</li>
+                        <li><strong>W - Warping Module:</strong> Dense motion field generation plus occlusion estimation.</li>
+                        <li><strong>G - SPADE Generator:</strong> Progressive upsampling and SPADE normalization.</li>
+                        <li><strong>S&R - Stitching & Retargeting:</strong> Networks for lip and eye control with boundary smoothing.</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3>Helpful Specs</h3>
+                    <ul>
+                        <li>Input resolution: 256x256 (upsampled to 512 in generator).</li>
+                        <li>Keypoints: 21 primary landmarks from Module M.</li>
+                        <li>Half-precision inference controlled via <code>InferenceConfig.flag_use_half_precision</code>.</li>
+                        <li>Retargeting networks expose stitching, lip, and eye heads for fine-tuning.</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section id="structure">
+            <h2>Project Structure <span>Navigating the Repo</span></h2>
+            <div class="grid columns-2">
+                <div class="card">
+                    <h3>Top-Level Highlights</h3>
+                    <ul>
+                        <li><code>src/</code>: core code (config, modules, utils, pipelines).</li>
+                        <li><code>assets/</code>: docs, examples, UI assets.</li>
+                        <li><code>pretrained_weights/</code>: model checkpoints (download separately).</li>
+                        <li><code>animations/</code>: default output directory.</li>
+                        <li><code>Dockerfile</code>, <code>requirements*.txt</code>, <code>readme*.md</code>: deployment and docs.</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3>Inside <code>src/</code></h3>
+                    <ul>
+                        <li><code>config/</code>: configuration classes such as <code>argument_config.py</code>, <code>crop_config.py</code>, <code>inference_config.py</code>.</li>
+                        <li><code>modules/</code>: neural blocks (<code>appearance_feature_extractor.py</code>, <code>motion_extractor.py</code>, <code>warping_network.py</code>, <code>spade_generator.py</code>, <code>stitching_retargeting_network.py</code>).</li>
+                        <li><code>utils/</code>: preprocessing, I/O, retargeting utilities, InsightFace dependencies, XPose animal support, and enhancement models.</li>
+                        <li><code>live_portrait_pipeline.py</code>, <code>live_portrait_pipeline_animal.py</code>, <code>live_portrait_wrapper.py</code>, <code>gradio_pipeline.py</code>: core runtime.</li>
+                    </ul>
+                </div>
+            </div>
+            <pre>
+LivePortrait/
+├── app.py | app_animals.py | inference.py | speed.py
+├── Dockerfile | requirements*.txt | README files
+├── src/
+│   ├── config/        # Runtime configuration
+│   ├── modules/       # Neural network components
+│   ├── utils/         # Detection, I/O, retargeting, helpers
+│   ├── gradio_pipeline.py
+│   ├── live_portrait_pipeline.py
+│   ├── live_portrait_pipeline_animal.py
+│   └── live_portrait_wrapper.py
+├── assets/            # Docs, examples, UI resources
+├── pretrained_weights/ (download separately)
+└── animations/        # Generated outputs
+            </pre>
+        </section>
+
+        <section id="workflow">
+            <h2>Data Flow <span>From Inputs to Animated Frames</span></h2>
+            <div class="card">
+                <ol>
+                    <li><strong>User Input:</strong> source portrait plus driving video or template.</li>
+                    <li><strong>Preprocessing:</strong> InsightFace detects faces, extracts landmarks, crops and aligns frames.</li>
+                    <li><strong>Feature Extraction:</strong> Module F encodes appearance; Module M derives keypoints, expressions, and rotation matrices.</li>
+                    <li><strong>Animation Generation:</strong> Motion templates adjust trajectories, Module W builds dense motion, Module G synthesizes frames, S&R applies stitching and retargeting.</li>
+                    <li><strong>Post-processing:</strong> Results are pasted back to the original frame, smoothed temporally, and combined with audio if provided.</li>
+                    <li><strong>Outputs:</strong> final animation plus optional motion template for reuse.</li>
+                </ol>
+            </div>
+        </section>
+
+        <section id="references">
+            <h2>Helpful References <span>Dig Deeper</span></h2>
+            <div class="grid columns-2">
+                <div class="card">
+                    <h3>Priority Files</h3>
+                    <ul>
+                        <li><code>PROJECT_DOCUMENTATION.md</code>: full technical guide.</li>
+                        <li><code>PROJECT_STRUCTURE.md</code>: expanded directory map.</li>
+                        <li><code>assets/docs/system-workflow.md</code>: end-to-end architecture notes.</li>
+                        <li><code>assets/docs/speed.md</code>: benchmarking details.</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3>Suggested First Tasks</h3>
+                    <ul>
+                        <li>Run <code>app.py</code> with sample assets in <code>assets/examples/</code>.</li>
+                        <li>Inspect <code>live_portrait_pipeline.py</code> to follow execution flow.</li>
+                        <li>Review <code>stitching_retargeting_network.py</code> to understand control knobs.</li>
+                        <li>Experiment with <code>InferenceConfig</code> toggles (half precision, driving options).</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <footer>
+            Built from <code>PROJECT_DOCUMENTATION.md</code> and <code>PROJECT_STRUCTURE.md</code>. Welcome to the team!
+        </footer>
+    </div>
+</body>
+</html>

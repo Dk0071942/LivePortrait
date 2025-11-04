@@ -147,6 +147,17 @@ huggingface-cli download KwaiVGI/LivePortrait --local-dir pretrained_weights --e
 
 确保目录结构如所示包含[**本仓库该路径**](assets/docs/directory-structure.md)其中展示的内容。
 
+#### 可选：RealESRGAN 超分模型权重
+
+如果你计划在界面或命令行中启用“Enable Upscaling (Enhancement)”选项，需要额外下载 RealESRGAN 模型权重：
+
+```bash
+mkdir -p ./src/utils/upscale_models
+wget https://github.com/xinntao/Real-ESRGAN/releases/download/v0.1.0/RealESRGAN_x4plus.pth -O ./src/utils/upscale_models/RealESRGAN_x4plus.pth
+```
+
+最终文件应位于 `./src/utils/upscale_models/RealESRGAN_x4plus.pth`。
+
 ### 3. 推理 🚀
 
 #### 快速上手（人类模型）👤

@@ -147,6 +147,17 @@ Alternatively, you can download all pretrained weights from [Google Drive](https
 
 Ensuring the directory structure is as or contains [**this**](assets/docs/directory-structure.md).
 
+#### Optional: RealESRGAN upscaler weights
+
+If you enable the `Enable Upscaling (Enhancement)` option in the UI or CLI, download the RealESRGAN model weights once:
+
+```bash
+mkdir -p ./src/utils/upscale_models
+wget https://github.com/xinntao/Real-ESRGAN/releases/download/v0.1.0/RealESRGAN_x4plus.pth -O ./src/utils/upscale_models/RealESRGAN_x4plus.pth
+```
+
+The file should end up at `./src/utils/upscale_models/RealESRGAN_x4plus.pth`.
+
 ### 3. Inference 🚀
 
 #### Fast hands-on (humans) 👤

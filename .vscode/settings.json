@@ -15,5 +15,8 @@
         "**/Thumbs.db": true,
         "**/*.crswap": true,
         "**/__pycache__": true
-    }
+    },
+    "python-envs.defaultEnvManager": "ms-python.python:conda",
+    "python-envs.defaultPackageManager": "ms-python.python:conda",
+    "python-envs.pythonProjects": []
 }

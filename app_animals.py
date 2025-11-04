@@ -260,9 +260,13 @@ with gr.Blocks(theme=gr.themes.Soft(font=[gr.themes.GoogleFont("Plus Jakarta San
                     # tab_pickle.select(lambda: "Pickle", None, tab_selection)
                     # tab_video.select(lambda: "Video", None, tab_selection)
 
-                    # New way using gr.State
-                    # Default to 'Pickle' as it's the first tab defined.
-                    tab_selection_state = gr.State(value="Pickle")
+                    # Track which driving input tab is active with a hidden dropdown.
+                    tab_selection_state = gr.Dropdown(
+                        value="Pickle",
+                        choices=["Pickle", "Video"],
+                        visible=False,
+                        label="Driving Input Type (hidden state)"
+                    )
 
                     def select_pickle_tab():
                         return "Pickle"
